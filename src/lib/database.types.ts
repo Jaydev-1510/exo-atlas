@@ -120,7 +120,7 @@ export type Database = {
         | "sub-neptune"
         | "neptune-like"
         | "ocean-world"
-        | "host-jupiter"
+        | "hot-jupiter"
         | "gas-giant"
         | "unknown"
     }
@@ -265,7 +265,7 @@ export const Constants = {
         "sub-neptune",
         "neptune-like",
         "ocean-world",
-        "host-jupiter",
+        "hot-jupiter",
         "gas-giant",
         "unknown",
       ],
