@@ -1,0 +1,6 @@
+---
+const { glyph, ...props } = Astro.props;
+const icons = import.meta.glob<{ default: any }>("@/assets/icons/*.svg",{ eager: true });
+const Icon = icons[`@/assets/icons/${glyph}.svg` as keyof typeof icons]?.default;
+---
+{Icon && <Icon {...props} />}
