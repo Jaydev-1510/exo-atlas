@@ -1,6 +1,17 @@
 ---
 import { Font } from "astro:assets";
 import "@/styles/global.css";
+import Navbar from "@/components/navbar.astro";
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const {
+  title = "Exoplanet Atlas",
+  description = "A passport for every world beyond our solar system. Browse 6,000+ confirmed exoplanets.",
+} = Astro.props;
 ---
 
 <html lang="en">
@@ -10,11 +21,20 @@ import "@/styles/global.css";
     <link rel="icon" href="/favicon.ico" />
     <Font cssVariable="--font-geist" preload />
     <Font cssVariable="--font-geist-mono" preload />
+    <Font cssVariable="--font-geist-pixel-circle" />
+    <Font cssVariable="--font-geist-pixel-grid" />
+    <Font cssVariable="--font-geist-pixel-line" preload />
+    <Font cssVariable="--font-geist-pixel-square" />
+    <Font cssVariable="--font-geist-pixel-triangle" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
-    <title>Astro</title>
+    <meta name="description" content={description} />
+    <title>{title}</title>
   </head>
   <body class="bg-background-100 font-sans text-white antialiased">
-    <slot />
+    <Navbar />
+    <main class="max-w-7xl mx-auto px-8 pt-20">
+      <slot />
+    </main>
   </body>
 </html>
