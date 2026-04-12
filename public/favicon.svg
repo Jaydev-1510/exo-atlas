@@ -15,15 +15,15 @@
       <stop offset="1" stop-color="white"/>
     </linearGradient>
   </defs>
-</svg>
-<style>
-  svg stop {
-    stop-color: black;
-  }
-
-  @media (prefers-color-scheme: dark) {
+  <style>
     svg stop {
-      stop-color: white;
+      stop-color: black;
     }
-  }
-</style>
+  
+    @media (prefers-color-scheme: dark) {
+      svg stop {
+        stop-color: white;
+      }
+    }
+  </style>
+</svg>
