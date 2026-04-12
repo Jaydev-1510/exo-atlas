@@ -103,7 +103,111 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_planet_by_slug: {
+        Args: { p_name: string }
+        Returns: {
+          created_at: string | null
+          dec: number | null
+          discovery_method:
+            | Database["public"]["Enums"]["discovery_method"]
+            | null
+          discovery_year: number | null
+          distance_ly: number | null
+          eq_temperature: number | null
+          esi_score: number | null
+          fts: unknown
+          habitability_pct: number | null
+          host_star: string
+          id: string
+          mass_earth: number | null
+          name: string
+          nasa_id: string | null
+          orbital_period: number | null
+          planet_type: Database["public"]["Enums"]["planet_type"] | null
+          ra: number | null
+          radius_earth: number | null
+          stellar_radius: number | null
+          stellar_temp: number | null
+          stellar_type: string | null
+          surface_gravity: number | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_planets: {
+        Args: {
+          p_habitable?: boolean
+          p_limit?: number
+          p_method?: string
+          p_offset?: number
+          p_order?: string
+          p_radius_max?: number
+          p_radius_min?: number
+          p_search?: string
+          p_sort?: string
+          p_type?: string
+          p_year_from?: number
+          p_year_to?: number
+        }
+        Returns: {
+          discovery_method: Database["public"]["Enums"]["discovery_method"]
+          discovery_year: number
+          distance_ly: number
+          eq_temperature: number
+          esi_score: number
+          habitability_pct: number
+          host_star: string
+          id: string
+          mass_earth: number
+          name: string
+          orbital_period: number
+          planet_type: Database["public"]["Enums"]["planet_type"]
+          radius_earth: number
+          stellar_type: string
+          total_count: number
+        }[]
+      }
+      get_random_planet: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          dec: number | null
+          discovery_method:
+            | Database["public"]["Enums"]["discovery_method"]
+            | null
+          discovery_year: number | null
+          distance_ly: number | null
+          eq_temperature: number | null
+          esi_score: number | null
+          fts: unknown
+          habitability_pct: number | null
+          host_star: string
+          id: string
+          mass_earth: number | null
+          name: string
+          nasa_id: string | null
+          orbital_period: number | null
+          planet_type: Database["public"]["Enums"]["planet_type"] | null
+          ra: number | null
+          radius_earth: number | null
+          stellar_radius: number | null
+          stellar_temp: number | null
+          stellar_type: string | null
+          surface_gravity: number | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
     }
     Enums: {
       discovery_method:
