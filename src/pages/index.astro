@@ -1,7 +1,114 @@
 ---
-import BaseLayout from "@/layouts/base.astro";
+import Layout from "@/layouts/base.astro";
+import PlanetCard from "@/components/planetCard.astro";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
+
+const [
+  { data: featured },
+  { count: total, data: stats },
+  { count: habitableCount },
+] = await Promise.all([
+  supabase.rpc("get_planets", {
+    p_sort: "esi_score",
+    p_order: "desc",
+    p_limit: 3,
+    p_offset: 0,
+    p_search: undefined,
+    p_type: "super-earth",
+    p_method: undefined,
+    p_habitable: undefined,
+    p_year_from: undefined,
+    p_year_to: undefined,
+    p_radius_min: undefined,
+    p_radius_max: undefined,
+  }),
+  supabaseAdmin.from("planets").select("id, habitability_pct, discovery_year", {
+    count: "exact",
+    head: false,
+  }),
+  supabaseAdmin
+    .from("planets")
+    .select("", {
+      count: "exact",
+      head: false,
+    })
+    .gte("habitability_pct", 60),
+]);
+
+const habitable = habitableCount;
+const latestYear = Math.max(
+  ...(stats?.map((p) => p.discovery_year ?? 0) ?? [0]),
+);
 ---
 
-<BaseLayout>
-  <h1 class="text-primary font-geist">exo-atlas</h1>
-</BaseLayout>
+<Layout>
+  <section class="py-20 text-center min-h-dvh">
+    <p class="font-mono text-xs text-secondary tracking-widest uppercase mb-4">
+      NASA Exoplanet Archive · Live data
+    </p>
+    <h1 class="text-white leading-tight mb-4 font-pixel-line text-heading-72">
+      A passport for every world<br />beyond our solar system.
+    </h1>
+    <p
+      class="text-secondary md:text-[20px] text-[14px] max-w-lg mx-auto mb-8 leading-relaxed"
+    >
+      Browse {total?.toLocaleString()}+ confirmed exoplanets. Explore orbits,
+      atmospheres, and the chances of harbouring life.
+    </p>
+    <div class="flex gap-3 justify-center flex-wrap">
+      <a
+        href="/atlas"
+        class="bg-gray-1000 text-background-100 text-sm
+        font-medium px-5 py-2.5 rounded-lg hover:bg-gray-900 transition-colors"
+      >
+        Explore the atlas
+      </a>
+
+      <a
+        href="/atlas?habitable=true"
+        class="border border-gray-400 text-gray-900
+      text-sm px-5 py-2.5 rounded-lg hover:border-text-secondary hover:bg-background-200 transition-colors duration-300"
+      >
+        Habitable zone only
+      </a>
+    </div>
+    <div
+      class="grid grid-cols-3 border border-gray-300 rounded-xl overflow-hidden mt-20"
+    >
+      {
+        [
+          { n: total?.toLocaleString(), l: "Confirmed worlds" },
+          { n: habitable?.toLocaleString(), l: "Habitable zone" },
+          { n: latestYear.toString(), l: "Latest discovery" },
+        ].map((s, i) => (
+          <div
+            class={`px-6 py-5 text-center "bg-background-100 hover:bg-background-200 transition-all duration-300 ${i < 2 ? "border-r border-gray-300" : ""}`}
+          >
+            <div class="font-mono text-2xl text-primary mb-1">{s.n}</div>
+            <div class="text-xs text-secondary uppercase tracking-widest">
+              {s.l}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="mb-20">
+    <div class="flex items-baseline justify-between mb-5">
+      <h2
+        class="text-heading-64 font-pixel-line text-secondary tracking-widest"
+      >
+        Top rated worlds
+      </h2>
+      <a
+        href="/atlas"
+        class="text-sm text-secondary hover:text-primary transition-colors"
+        >View all
+      </a>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {featured?.map((p) => <PlanetCard {...p} />)}
+    </div>
+  </section>
+</Layout>
