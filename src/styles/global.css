@@ -1,8 +1,84 @@
 @import "tailwindcss";
 
+.font-pixel-circle {
+  font-family: var(--font-geist-pixel-circle);
+}
+.font-pixel-gird {
+  font-family: var(--font-geist-pixel-gird);
+}
+.font-pixel-line {
+  font-family: var(--font-geist-pixel-line);
+}
+.font-pixel-square {
+  font-family: var(--font-geist-pixel-square);
+}
+.font-pixel-triangle {
+  font-family: var(--font-geist-pixel-triangle);
+}
+.text-heading-72 {
+  font-size: 72px;
+  line-height: 72px;
+  font-weight: 600;
+  letter-spacing: -4.32px;
+}
+.text-heading-64 {
+  font-size: 64px;
+  line-height: 64px;
+  font-weight: 600;
+  letter-spacing: -3.84px;
+}
+.text-heading-56 {
+  font-size: 56px;
+  line-height: 56px;
+  font-weight: 600;
+  letter-spacing: -3.36px;
+}
+.text-heading-48 {
+  font-size: 48px;
+  line-height: 48px;
+  font-weight: 600;
+  letter-spacing: -2.88px;
+}
+.text-heading-40 {
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 600;
+  letter-spacing: -2.4px;
+}
+.text-heading-32 {
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 600;
+  letter-spacing: -1.28px;
+}
+.text-heading-24 {
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: -0.96px;
+}
+.text-heading-20 {
+  font-size: 20px;
+  line-height: 26px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+}
+.text-heading-16 {
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  letter-spacing: -0.32px;
+}
+.text-heading-14 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: -0.28px;
+}
+
 @theme {
-  --font-family-sans: var(--font-geist), system-ui, sans-serif;
-  --font-family-mono: var(--font-geist-mono), monospace;
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), monospace;
   --font-family-pixel-circle: var(--font-geist-pixel-circle), sans-serif;
   --font-family-pixel-grid: var(--font-geist-pixel-grid), sans-serif;
   --font-family-pixel-line: var(--font-geist-pixel-line), sans-serif;
@@ -224,4 +300,8 @@
 
 * {
   box-sizing: border-box;
+}
+*::selection {
+  color: black;
+  background-color: var(--ds-gray-1000);
 }
