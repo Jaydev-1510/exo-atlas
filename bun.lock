@@ -14,7 +14,7 @@
         "typescript": "^6.0.2",
       },
       "devDependencies": {
-        "supabase": "^2.89.0",
+        "supabase": "^2.89.1",
       },
     },
   },
@@ -1107,7 +1107,7 @@
 
     "stringify-object": ["stringify-object@3.3.0", "", { "dependencies": { "get-own-enumerable-property-symbols": "^3.0.0", "is-obj": "^1.0.1", "is-regexp": "^1.0.0" } }, "sha512-rHqiFh1elqCQ9WPLIC8I0Q/g/wj5J1eMkyoiD6eoQApWHP0FtlK7rqnhmabL5VUY9JQCcqwwvlOaSuutekgyrw=="],
 
-    "supabase": ["supabase@2.89.0", "", { "dependencies": { "bin-links": "^6.0.0", "https-proxy-agent": "^9.0.0", "node-fetch": "^3.3.2", "tar": "7.5.13" }, "bin": { "supabase": "bin/supabase" } }, "sha512-oYCp/NKaJQkiIdorJcgZLvy8M2vzACMvZy0mbk7f9GV5IRMPO83hNshzdtxGBoiqpgRUZIWEEiQCcuXpN4r9Xw=="],
+    "supabase": ["supabase@2.89.1", "", { "dependencies": { "bin-links": "^6.0.0", "https-proxy-agent": "^9.0.0", "node-fetch": "^3.3.2", "tar": "7.5.13" }, "bin": { "supabase": "bin/supabase" } }, "sha512-OsT1kIC2YutgSj4iy+CD0jRkfxlULB5K48uCxGTMNXcnX4IEQ9gVrQ05QQDuBkX1uVEH6E6itrs3HjQs5u/uVw=="],
 
     "supports-color": ["supports-color@5.5.0", "", { "dependencies": { "has-flag": "^3.0.0" } }, "sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow=="],
 
