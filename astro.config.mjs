@@ -248,7 +248,7 @@ export default defineConfig({
     },
     {
       provider: fontProviders.local(),
-      name: "Geist Grid Line",
+      name: "Geist Pixel Line",
       cssVariable: "--font-geist-pixel-line",
       fallbacks: ["sans-serif"],
       options: {
