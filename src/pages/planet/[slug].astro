@@ -56,7 +56,7 @@ const planetType = planet.planet_type ?? "unknown";
 ---
 
 <Layout title={`${planet.name} — Exoplanet Atlas`}>
-  <main class="max-w-4xl mx-auto px-4 py-10">
+  <section class="max-w-4xl mx-auto px-4 py-10">
     <div class="mb-8">
       <a
         href="/atlas"
@@ -82,7 +82,8 @@ const planetType = planet.planet_type ?? "unknown";
             {planet.name}
           </h1>
           <span
-            style={`font-size:.7rem;font-weight:500;padding:.2rem .6rem;border-radius:999px;${typeStyles[planetType]}`}
+            style={`${typeStyles[planetType]}`}
+            class="text-xs font-medium rounded-full py-1 px-2.5"
           >
             {typeLabels[planetType]}
           </span>
@@ -128,10 +129,7 @@ const planetType = planet.planet_type ?? "unknown";
               },
             ].map((m) => (
               <div class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5">
-                <div
-                  style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
-                  class="text-gray-500 mb-1"
-                >
+                <div class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]">
                   {m.label}
                 </div>
                 <div class="font-mono text-sm text-gray-1000">{m.value}</div>
@@ -167,7 +165,7 @@ const planetType = planet.planet_type ?? "unknown";
       </div>
     </div>
 
-    <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
       <div
         class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
       >
@@ -192,8 +190,7 @@ const planetType = planet.planet_type ?? "unknown";
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
           <div
-            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
-            class="text-gray-500 mb-1"
+            class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
           >
             Weight here
           </div>
@@ -203,8 +200,7 @@ const planetType = planet.planet_type ?? "unknown";
         </div>
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
           <div
-            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
-            class="text-gray-500 mb-1"
+            class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
           >
             Year length
           </div>
@@ -212,8 +208,7 @@ const planetType = planet.planet_type ?? "unknown";
         </div>
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
           <div
-            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
-            class="text-gray-500 mb-1"
+            class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
           >
             Surface gravity
           </div>
@@ -223,7 +218,68 @@ const planetType = planet.planet_type ?? "unknown";
         </div>
       </div>
     </div>
-  </main>
+
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
+      <div
+        class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+      >
+        Orbital period
+      </div>
+      <div class="flex md:flex-row flex-col items-center justify-between gap-5">
+        <div
+          class="flex md:flex-col flex-row justify-between md:gap-4 h-full min-w-50"
+        >
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              1 orbit takes
+            </div>
+            <div
+              id="orbit-period-label"
+              class="font-mono text-sm text-gray-1000"
+            >
+              {period}
+            </div>
+          </div>
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              Speed vs Earth
+            </div>
+            <div
+              id="orbit-speed-label"
+              class="font-mono text-sm text-gray-1000"
+            >
+              —
+            </div>
+          </div>
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              Your age there
+            </div>
+            <div id="orbit-age-label" class="font-mono text-sm text-gray-1000">
+              —
+            </div>
+          </div>
+        </div>
+        <div
+          class="w-full flex items-center justify-center bg-background-100 border border-gray-200 rounded-lg overflow-hidden"
+        >
+          <canvas id="orbit-canvas" width="260" height="224"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
 </Layout>
 
 <script
@@ -340,6 +396,94 @@ const planetType = planet.planet_type ?? "unknown";
     requestAnimationFrame(animateTransit);
   }
   animateTransit();
+
+  const oc = document.getElementById("orbit-canvas");
+  const octx = oc.getContext("2d");
+  const OW = oc.width,
+    OH = oc.height;
+  const ocx = OW / 2,
+    ocy = OH / 2;
+
+  const earthOrbitR = 70;
+  const planetOrbitR = Math.min(Math.max(earthOrbitR * 0.6, 40), 110);
+
+  const earthPeriod = 365.25;
+  const speedRatio = earthPeriod / (planetPeriod || 365.25);
+
+  document.getElementById("orbit-speed-label").textContent =
+    speedRatio > 1
+      ? `${speedRatio.toFixed(1)}× faster`
+      : `${(1 / speedRatio).toFixed(1)}× slower`;
+
+  document.getElementById("orbit-age-label").textContent = planetPeriod
+    ? `${((25 * earthPeriod) / planetPeriod).toFixed(1)} yrs`
+    : "—";
+
+  const [pc1] = COLORS[planetType] ?? COLORS["unknown"];
+
+  let earthAngle = 0;
+  let planetAngle = 0;
+
+  function drawOrbit() {
+    octx.clearRect(0, 0, OW, OH);
+
+    octx.beginPath();
+    octx.arc(ocx, ocy, 10, 0, Math.PI * 2);
+    octx.fillStyle = "#ffd060";
+    octx.fill();
+
+    octx.beginPath();
+    octx.arc(ocx, ocy, 14, 0, Math.PI * 2);
+    octx.fillStyle = "rgba(255,208,96,0.12)";
+    octx.fill();
+
+    octx.beginPath();
+    octx.arc(ocx, ocy, earthOrbitR, 0, Math.PI * 2);
+    octx.strokeStyle = "rgba(255,255,255,0.08)";
+    octx.lineWidth = 1;
+    octx.stroke();
+
+    octx.beginPath();
+    octx.arc(ocx, ocy, planetOrbitR, 0, Math.PI * 2);
+    octx.strokeStyle = "rgba(255,255,255,0.08)";
+    octx.lineWidth = 1;
+    octx.stroke();
+
+    const ex = ocx + earthOrbitR * Math.cos(earthAngle);
+    const ey = ocy + earthOrbitR * Math.sin(earthAngle);
+    octx.beginPath();
+    octx.arc(ex, ey, 5, 0, Math.PI * 2);
+    octx.fillStyle = "#378ADD";
+    octx.fill();
+
+    octx.fillStyle = "rgba(255,255,255,0.3)";
+    octx.font = "10px monospace";
+    octx.fillText("Earth", ex + 7, ey + 4);
+
+    const px2 = ocx + planetOrbitR * Math.cos(planetAngle);
+    const py2 = ocy + planetOrbitR * Math.sin(planetAngle);
+    octx.beginPath();
+    octx.arc(
+      px2,
+      py2,
+      Math.min(Math.max(planetRadius * 2.5, 4), 10),
+      0,
+      Math.PI * 2,
+    );
+    octx.fillStyle = pc1;
+    octx.fill();
+
+    octx.fillStyle = "rgba(255,255,255,0.5)";
+    octx.font = "10px monospace";
+    octx.fillText(planetName.split(" ")[0], px2 + 8, py2 + 4);
+
+    const baseSpeed = (2 * Math.PI) / 600;
+    earthAngle += baseSpeed;
+    planetAngle += baseSpeed * speedRatio;
+
+    requestAnimationFrame(drawOrbit);
+  }
+  drawOrbit();
 
   const compare = document.getElementById("size-compare");
   const bodies = [
