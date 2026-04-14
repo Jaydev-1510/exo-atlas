@@ -35,14 +35,14 @@ const typeLabels: Record<string, string> = {
 };
 
 const typeStyles: Record<string, string> = {
-  rocky: "background:var(--ds-amber-100);color:var(--ds-amber-500)",
-  "super-earth": "background:var(--ds-teal-200);color:var(--ds-teal-800)",
-  "sub-neptune": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
-  "neptune-like": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
-  "ocean-world": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
-  "hot-jupiter": "background:var(--ds-amber-200);color:var(--ds-amber-800)",
-  "gas-giant": "background:var(--ds-purple-200);color:var(--ds-purple-800)",
-  unknown: "background:var(--ds-gray-200);color:var(--ds-gray-700)",
+  rocky: "bg-amber-100 text-amber-500",
+  "super-earth": "bg-teal-200 text-teal-800",
+  "sub-neptune": "bg-blue-200 text-blue-800",
+  "neptune-like": "bg-blue-200 text-blue-800",
+  "ocean-world": "bg-blue-200 text-blue-800",
+  "hot-jupiter": "bg-amber-200 text-amber-800",
+  "gas-giant": "bg-purple-200 text-purple-800",
+  unknown: "bg-gray-200 text-gray-700",
 };
 
 const habColor =
@@ -82,8 +82,7 @@ const planetType = planet.planet_type ?? "unknown";
             {planet.name}
           </h1>
           <span
-            style={`${typeStyles[planetType]}`}
-            class="text-xs font-medium rounded-full py-1 px-2.5"
+            class={`text-xs font-medium rounded-full py-1 px-2.5 ${typeStyles[planetType]}`}
           >
             {typeLabels[planetType]}
           </span>
@@ -227,7 +226,7 @@ const planetType = planet.planet_type ?? "unknown";
       </div>
       <div class="flex md:flex-row flex-col items-center justify-between gap-5">
         <div
-          class="flex md:flex-col flex-row justify-between md:gap-4 h-full min-w-50"
+          class="flex md:flex-col flex-row justify-between md:gap-4 h-full min-w-64"
         >
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
@@ -272,10 +271,78 @@ const planetType = planet.planet_type ?? "unknown";
             </div>
           </div>
         </div>
-        <div
-          class="w-full flex items-center justify-center bg-background-100 border border-gray-200 rounded-lg overflow-hidden"
-        >
+        <div class="w-full flex items-center justify-center">
           <canvas id="orbit-canvas" width="260" height="224"></canvas>
+        </div>
+      </div>
+    </div>
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
+      <div
+        class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+      >
+        Host star
+      </div>
+      <div class="flex items-center justify-between">
+        <div class="w-full flex items-center justify-center">
+          <canvas id="star-canvas" width="120" height="120"></canvas>
+        </div>
+        <div class="grid grid-cols-2 gap-3 flex-1 min-w-135">
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              Spectral type
+            </div>
+            <div class="font-mono text-sm text-gray-1000">
+              {planet.stellar_type ?? "—"}
+            </div>
+          </div>
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              Temperature
+            </div>
+            <div class="font-mono text-sm text-gray-1000">
+              {
+                planet.stellar_temp
+                  ? `${Math.round(planet.stellar_temp).toLocaleString()} K`
+                  : "—"
+              }
+            </div>
+          </div>
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              Star radius
+            </div>
+            <div class="font-mono text-sm text-gray-1000">
+              {
+                planet.stellar_radius
+                  ? `${Number(planet.stellar_radius).toFixed(2)} R☉`
+                  : "—"
+              }
+            </div>
+          </div>
+          <div
+            class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+          >
+            <div
+              class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
+            >
+              Star name
+            </div>
+            <div class="font-mono text-sm text-gray-1000">
+              {planet.host_star}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -291,6 +358,9 @@ const planetType = planet.planet_type ?? "unknown";
     planetName: planet.name,
     planetPeriod: planet.orbital_period ?? 365,
     planetTemp: planet.eq_temperature ?? 255,
+    stellarType: planet.stellar_type ?? null,
+    stellarTemp: planet.stellar_temp ?? null,
+    stellarRadius: planet.stellar_radius ?? 1,
   }}
 >
   const COLORS = {
@@ -484,6 +554,72 @@ const planetType = planet.planet_type ?? "unknown";
     requestAnimationFrame(drawOrbit);
   }
   drawOrbit();
+
+  function spectralToColor(type, temp) {
+    const t = temp ?? 5778;
+
+    if (t > 30000) return ["#9bb0ff", "#b0c0ff"];
+    if (t > 10000) return ["#aabfff", "#c0d0ff"];
+    if (t > 7500) return ["#f8f7ff", "#fffaf0"];
+    if (t > 6000) return ["#fff4e8", "#ffe8d0"];
+    if (t > 5200) return ["#ffdd90", "#ffd060"];
+    if (t > 3700) return ["#ffb347", "#ff8c00"];
+    return ["#ff6b35", "#cc4400"];
+  }
+
+  function tempToSpectralClass(temp) {
+    if (!temp) return null;
+    if (temp > 30000) return "O";
+    if (temp > 10000) return "B";
+    if (temp > 7500) return "A";
+    if (temp > 6000) return "F";
+    if (temp > 5200) return "G";
+    if (temp > 3700) return "K";
+    return "M";
+  }
+
+  const displaySpectral =
+    stellarType ?? tempToSpectralClass(stellarTemp) ?? "Unknown";
+
+  const sc = document.getElementById("star-canvas");
+  const sctx = sc.getContext("2d");
+  const SW = sc.width,
+    SH = sc.height;
+  const scx = SW / 2,
+    scy = SH / 2;
+
+  sctx.fillStyle = "rgba(255,255,255,0.5)";
+  sctx.font = "11px monospace";
+  sctx.textAlign = "center";
+  sctx.fillText(displaySpectral, scx, SH - 6);
+
+  const [sc1, sc2] = spectralToColor(
+    stellarType ?? tempToSpectralClass(stellarTemp),
+    stellarTemp,
+  );
+  const sr = Math.min(Math.max((stellarRadius ?? 1) * 20, 18), scx - 8);
+
+  const sg = sctx.createRadialGradient(
+    scx - sr * 0.3,
+    scy - sr * 0.3,
+    sr * 0.05,
+    scx,
+    scy,
+    sr,
+  );
+  sg.addColorStop(0, sc1);
+  sg.addColorStop(0.6, sc2);
+  sg.addColorStop(1, sc2 + "44");
+
+  sctx.beginPath();
+  sctx.arc(scx, scy, sr, 0, Math.PI * 2);
+  sctx.fillStyle = sg;
+  sctx.fill();
+
+  sctx.beginPath();
+  sctx.arc(scx, scy, sr + 6, 0, Math.PI * 2);
+  sctx.fillStyle = sc2 + "18";
+  sctx.fill();
 
   const compare = document.getElementById("size-compare");
   const bodies = [
