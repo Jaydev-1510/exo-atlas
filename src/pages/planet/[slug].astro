@@ -1,0 +1,385 @@
+---
+import Layout from "@/layouts/base.astro";
+import { supabase } from "@/lib/supabase";
+
+export const prerender = false;
+
+const { slug } = Astro.params;
+const { data: planet } = await supabase
+  .rpc("get_planet_by_slug", { p_name: slug ?? "" })
+  .single();
+
+if (!planet) return Astro.redirect("/atlas");
+
+const fmt = (v: number | null, d = 2) =>
+  v != null ? Number(v).toFixed(d) : "—";
+
+const period =
+  planet.orbital_period == null
+    ? "—"
+    : planet.orbital_period < 1
+      ? `${(planet.orbital_period * 24).toFixed(1)}h`
+      : planet.orbital_period > 1000
+        ? `${(planet.orbital_period / 365.25).toFixed(1)} yr`
+        : `${planet.orbital_period.toFixed(1)} days`;
+
+const typeLabels: Record<string, string> = {
+  rocky: "Rocky",
+  "super-earth": "Super-earth",
+  "sub-neptune": "Sub-neptune",
+  "neptune-like": "Neptune-like",
+  "ocean-world": "Ocean world",
+  "hot-jupiter": "Hot Jupiter",
+  "gas-giant": "Gas giant",
+  unknown: "Unknown",
+};
+
+const typeStyles: Record<string, string> = {
+  rocky: "background:var(--ds-amber-100);color:var(--ds-amber-500)",
+  "super-earth": "background:var(--ds-teal-200);color:var(--ds-teal-800)",
+  "sub-neptune": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
+  "neptune-like": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
+  "ocean-world": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
+  "hot-jupiter": "background:var(--ds-amber-200);color:var(--ds-amber-800)",
+  "gas-giant": "background:var(--ds-purple-200);color:var(--ds-purple-800)",
+  unknown: "background:var(--ds-gray-200);color:var(--ds-gray-700)",
+};
+
+const habColor =
+  (planet.habitability_pct ?? 0) >= 70
+    ? "var(--ds-green-500)"
+    : (planet.habitability_pct ?? 0) >= 40
+      ? "var(--ds-amber-500)"
+      : "var(--ds-red-500)";
+
+const planetType = planet.planet_type ?? "unknown";
+---
+
+<Layout title={`${planet.name} — Exoplanet Atlas`}>
+  <main class="max-w-4xl mx-auto px-4 py-10">
+    <div class="mb-8">
+      <a
+        href="/atlas"
+        class="text-xs text-gray-600 hover:text-gray-900 transition-colors"
+        >Atlas</a
+      >
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+      <div
+        class="bg-background-200 border border-gray-300 rounded-xl flex items-center justify-center h-full"
+      >
+        <canvas
+          id="planet-canvas"
+          width="200"
+          height="200"
+          data-type={planetType}
+          data-radius={planet.radius_earth ?? 1}></canvas>
+      </div>
+
+      <div class="flex flex-col justify-center">
+        <div class="flex items-center justify-between gap-3 mb-2">
+          <h1 class="font-medium text-primary text-heading-48">
+            {planet.name}
+          </h1>
+          <span
+            style={`font-size:.7rem;font-weight:500;padding:.2rem .6rem;border-radius:999px;${typeStyles[planetType]}`}
+          >
+            {typeLabels[planetType]}
+          </span>
+        </div>
+        <p class="font-mono text-sm text-gray-600 mb-6">
+          {planet.host_star}
+          {
+            planet.distance_ly && (
+              <span> · {fmt(planet.distance_ly, 1)} ly</span>
+            )
+          }
+          {planet.stellar_type && <span> · {planet.stellar_type}</span>}
+        </p>
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="text-xs text-gray-600">Habitability</span>
+          <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
+            <div
+              class="h-full rounded-full"
+              style={`width:${planet.habitability_pct ?? 0}%;background:${habColor}`}
+            >
+            </div>
+          </div>
+          <span class="font-mono text-sm text-gray-900"
+            >{planet.habitability_pct ?? 0}%</span
+          >
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          {
+            [
+              { label: "Radius", value: `${fmt(planet.radius_earth)} R⊕` },
+              { label: "Mass", value: `${fmt(planet.mass_earth)} M⊕` },
+              { label: "Period", value: period },
+              {
+                label: "Temperature",
+                value: `${fmt(planet.eq_temperature, 0)} K`,
+              },
+              { label: "ESI score", value: fmt(planet.esi_score, 3) },
+              {
+                label: "Discovered",
+                value: planet.discovery_year?.toString() ?? "—",
+              },
+            ].map((m) => (
+              <div class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5">
+                <div
+                  style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+                  class="text-gray-500 mb-1"
+                >
+                  {m.label}
+                </div>
+                <div class="font-mono text-sm text-gray-1000">{m.value}</div>
+              </div>
+            ))
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+      <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+        <div
+          class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+        >
+          Transit light curve
+        </div>
+        <canvas
+          id="transit-canvas"
+          width="100%"
+          height="90"
+          style="width:100%;height:90px"></canvas>
+      </div>
+
+      <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+        <div
+          class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+        >
+          Size comparison
+        </div>
+        <div id="size-compare" class="flex items-end justify-center gap-6 py-2">
+        </div>
+      </div>
+    </div>
+
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+      <div
+        class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+      >
+        Could I live here?
+      </div>
+      <div class="flex items-center gap-4 mb-4">
+        <label class="text-sm text-gray-700 min-w-24">Your weight</label>
+        <input
+          type="range"
+          id="weight-slider"
+          min="30"
+          max="200"
+          value="70"
+          step="1"
+          class="flex-1 accent-green-500"
+        />
+        <span
+          id="weight-out"
+          class="font-mono text-sm text-gray-900 w-16 text-right">70 kg</span
+        >
+      </div>
+      <div class="grid grid-cols-3 gap-3">
+        <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Weight here
+          </div>
+          <div id="res-weight" class="font-mono text-sm text-gray-1000">
+            — kg
+          </div>
+        </div>
+        <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Year length
+          </div>
+          <div class="font-mono text-sm text-gray-1000">{period}</div>
+        </div>
+        <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Surface gravity
+          </div>
+          <div id="res-gravity" class="font-mono text-sm text-gray-1000">
+            — g
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</Layout>
+
+<script
+  is:inline
+  define:vars={{
+    planetType,
+    planetRadius: planet.radius_earth ?? 1,
+    planetMass: planet.mass_earth ?? null,
+    planetName: planet.name,
+    planetPeriod: planet.orbital_period ?? 365,
+    planetTemp: planet.eq_temperature ?? 255,
+  }}
+>
+  const COLORS = {
+    rocky: ["#8a7040", "#6a5030"],
+    "super-earth": ["#3a9e75", "#1a7e55"],
+    "sub-neptune": ["#4a8ed4", "#2a6eb4"],
+    "neptune-like": ["#3a7ed4", "#1a5eb4"],
+    "ocean-world": ["#3a7ed4", "#1a5eb4"],
+    "hot-jupiter": ["#E87C1E", "#c85c0e"],
+    "gas-giant": ["#8a5bc4", "#6a3ba4"],
+    unknown: ["#505050", "#303030"],
+  };
+
+  const pc = document.getElementById("planet-canvas");
+  const ctx = pc.getContext("2d");
+  const [c1, c2] = COLORS[planetType] ?? COLORS["unknown"];
+  const s = 200,
+    cx = s / 2,
+    cy = s / 2;
+  const r = Math.min(Math.max(planetRadius * 22, 12), s * 0.44);
+  const g = ctx.createRadialGradient(
+    cx - r * 0.3,
+    cy - r * 0.3,
+    r * 0.1,
+    cx,
+    cy,
+    r,
+  );
+  g.addColorStop(0, c1);
+  g.addColorStop(1, c2);
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = "rgba(255,255,255,0.08)";
+  ctx.fill();
+
+  const tc = document.getElementById("transit-canvas");
+  tc.width = tc.offsetWidth || 400;
+  const tctx = tc.getContext("2d");
+  const W = tc.width,
+    H = 90;
+  const dip = Math.min((planetRadius / 10) * 30, 30);
+
+  tctx.strokeStyle = "var(--ds-teal-500)";
+  tctx.lineWidth = 1.5;
+  tctx.beginPath();
+  const pts = [];
+  for (let x = 0; x <= W; x++) {
+    const t = x / W;
+    const center = 0.5;
+    const width = 0.12;
+    let y = 20;
+    if (Math.abs(t - center) < width) {
+      const d = (t - center) / width;
+      y += (dip * (1 - Math.cos(d * Math.PI))) / 2;
+    }
+    pts.push([x, y]);
+    x === 0 ? tctx.moveTo(x, y) : tctx.lineTo(x, y);
+  }
+  tctx.stroke();
+
+  tctx.fillStyle = "var(--ds-gray-600)";
+  tctx.font = "10px monospace";
+  tctx.fillText("flux", 8, 16);
+  tctx.fillText("time →", W - 52, H - 6);
+  tctx.fillStyle = "var(--ds-teal-600)";
+  tctx.fillText(
+    `−${((planetRadius ** 2 / 100) * 100).toFixed(2)}%`,
+    W - 52,
+    36,
+  );
+
+  let frame = 0;
+  function animateTransit() {
+    tctx.clearRect(0, 0, W, H);
+    tctx.strokeStyle = "#14b8a6";
+    tctx.lineWidth = 1.5;
+    tctx.beginPath();
+    pts.forEach(([x, y], i) =>
+      i === 0 ? tctx.moveTo(x, y) : tctx.lineTo(x, y),
+    );
+    tctx.stroke();
+    tctx.fillStyle = "var(--ds-gray-600)";
+    tctx.font = "10px monospace";
+    tctx.fillText("flux", 8, 16);
+    tctx.fillText("time →", W - 52, H - 6);
+    tctx.fillStyle = "#14b8a6";
+    tctx.fillText(
+      `−${((planetRadius ** 2 / 100) * 100).toFixed(2)}%`,
+      W - 52,
+      36,
+    );
+    const px = (frame / 120) * W;
+    const py = pts[Math.min(Math.floor(px), W - 1)]?.[1] ?? 20;
+    tctx.beginPath();
+    tctx.arc(px, py - 14, 4, 0, Math.PI * 2);
+    tctx.fillStyle = COLORS[planetType]?.[0] ?? "#888";
+    tctx.fill();
+    frame = (frame + 1) % 120;
+    requestAnimationFrame(animateTransit);
+  }
+  animateTransit();
+
+  const compare = document.getElementById("size-compare");
+  const bodies = [
+    { name: "Earth", r: 1, color: "#378ADD" },
+    {
+      name: planetName.split(" ")[0],
+      r: Math.max(planetRadius, 0.1),
+      color: COLORS[planetType]?.[0] ?? "#888",
+    },
+    { name: "Neptune", r: 3.88, color: "#4a8ed4" },
+    { name: "Jupiter", r: 11.2, color: "#E87C1E" },
+  ];
+  const maxR = Math.max(...bodies.map((b) => b.r));
+  const scale = 44 / maxR;
+  bodies.forEach((b) => {
+    const px = Math.max(b.r * scale, 5);
+    const div = document.createElement("div");
+    div.style.cssText =
+      "display:flex;flex-direction:column;align-items:center;gap:8px";
+    div.innerHTML = `
+      <div style="width:${px * 2}px;height:${px * 2}px;border-radius:50%;background:${b.color};opacity:.85;flex-shrink:0"></div>
+      <div style="font-size:10px;color:var(--ds-gray-600);font-family:var(--font-geist-mono);white-space:nowrap">${b.name}</div>
+    `;
+    compare.appendChild(div);
+  });
+
+  const estimatedMass = planetMass ?? Math.pow(planetRadius, 2.06);
+  const gravityRatio = Math.max(estimatedMass / planetRadius ** 2, 0.01);
+  const slider = document.getElementById("weight-slider");
+  const weightOut = document.getElementById("weight-out");
+  const resWeight = document.getElementById("res-weight");
+  const resGravity = document.getElementById("res-gravity");
+
+  function updateGravity() {
+    const w = Number(slider.value);
+    weightOut.textContent = `${w} kg`;
+    resWeight.textContent = `${(w * gravityRatio).toFixed(1)} kg`;
+    resGravity.textContent = `${gravityRatio.toFixed(2)} g`;
+  }
+
+  slider.addEventListener("input", updateGravity);
+  updateGravity();
+</script>
