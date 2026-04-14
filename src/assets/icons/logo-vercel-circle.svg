@@ -3,7 +3,7 @@
 <path d="M16 0H0V16H16V0Z" fill="white"/>
 </mask>
 <g mask="url(#mask0_1_1665)">
-<path d="M8 15.25C12.0041 15.25 15.25 12.0041 15.25 8C15.25 3.99594 12.0041 0.75 8 0.75C3.99594 0.75 0.75 3.99594 0.75 8C0.75 12.0041 3.99594 15.25 8 15.25Z" fill="#666666" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M8 15.25C12.0041 15.25 15.25 12.0041 15.25 8C15.25 3.99594 12.0041 0.75 8 0.75C3.99594 0.75 0.75 3.99594 0.75 8C0.75 12.0041 3.99594 15.25 8 15.25Z" fill="currentColor" stroke="#666666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
 <path fill-rule="evenodd" clip-rule="evenodd" d="M8 4.5L11.5 10.625H4.5L8 4.5Z" fill="#F2F2F2"/>
 </g>
 </svg>
