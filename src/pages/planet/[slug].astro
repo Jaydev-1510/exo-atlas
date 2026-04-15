@@ -1,5 +1,7 @@
 ---
 import Layout from "@/layouts/base.astro";
+import Icon from "@/components/icons.astro";
+import SkyMap from "@/components/skyMap.astro";
 import { supabase } from "@/lib/supabase";
 
 export const prerender = false;
@@ -60,8 +62,11 @@ const planetType = planet.planet_type ?? "unknown";
     <div class="mb-8">
       <a
         href="/atlas"
-        class="text-xs text-gray-600 hover:text-gray-900 transition-colors"
-        >Atlas</a
+        class="text-md text-gray-600 hover:text-gray-900 transition-colors flex gap-1 items-center group"
+        ><Icon
+          glyph="arrow-left"
+          class="group-hover:-translate-x-2 group-hover:scale-110 transition-all duration-300"
+        />Atlas</a
       >
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
@@ -163,6 +168,8 @@ const planetType = planet.planet_type ?? "unknown";
         </div>
       </div>
     </div>
+    
+    <SkyMap ra={planet.ra} dec={planet.dec} name={planet.name} />
 
     <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
       <div
