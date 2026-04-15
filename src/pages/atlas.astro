@@ -48,7 +48,7 @@ const sorts = [
     <h1
       class="absolute text-center font-bold font-pixel-line tracking-tighter text-[12em] select-none bg-linear-0 from-black to-primary text-transparent bg-clip-text whitespace-nowrap leading-40"
     >
-      Planet Atlas
+      Planet Atlas.
     </h1>
     <p class="font-mono text-md text-secondary mt-[8em] z-20">
       Browse {Number(total).toLocaleString()} worlds
@@ -112,13 +112,20 @@ const sorts = [
 
   <div
     id="grid-outer"
-    class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+    class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"
   >
     <div id="planet-grid" class="contents">
       {planets?.map((p) => <PlanetCard {...p} />)}
     </div>
   </div>
-
+  <div
+    id="empty-state"
+    class="hidden items-center justify-center py-30 border border-dashed border-white/10 rounded-lg"
+  >
+    <p class="text-sm text-center tracking-widest uppercase text-gray-500">
+      No planets found.
+    </p>
+  </div>
   <div id="load-more-wrap" class="flex justify-center mt-10">
     <button
       id="load-more"
@@ -139,6 +146,7 @@ const sorts = [
   const loadMore = document.getElementById("load-more") as HTMLButtonElement;
   const loadWrap = document.getElementById("load-more-wrap")!;
   const gridOuter = document.getElementById("grid-outer")!;
+  const noDataFound = document.getElementById("empty-state")!;
 
   interface Params {
     q: string;
@@ -188,10 +196,9 @@ const sorts = [
     if (replace) gridOuter.innerHTML = "";
 
     if (!json.data?.length) {
-      gridOuter.innerHTML =
-        '<div style="grid-column:1/-1;padding:3rem;text-align:center;color:var(--ds-gray-600);font-size:.875rem">No planets found</div>';
-      loadWrap.style.display = "none";
-      return;
+      noDataFound.classList.remove("hidden");
+    } else {
+      noDataFound.classList.add("hidden");
     }
 
     json.data.forEach((planet: any) => {
@@ -214,14 +221,14 @@ const sorts = [
 
   function buildCard(p: any) {
     const typeStyles: Record<string, string> = {
-      rocky: "background:var(--ds-gray-200);color:var(--ds-gray-800)",
-      "super-earth": "background:var(--ds-teal-200);color:var(--ds-teal-800)",
-      "sub-neptune": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
-      "neptune-like": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
-      "ocean-world": "background:var(--ds-blue-200);color:var(--ds-blue-800)",
-      "hot-jupiter": "background:var(--ds-amber-200);color:var(--ds-amber-800)",
-      "gas-giant": "background:var(--ds-purple-200);color:var(--ds-purple-800)",
-      unknown: "background:var(--ds-gray-200);color:var(--ds-gray-700)",
+      rocky: "bg-amber-100 text-amber-500",
+      "super-earth": "bg-teal-200 text-teal-800",
+      "sub-neptune": "bg-blue-200 text-blue-800",
+      "neptune-like": "bg-blue-200 text-blue-800",
+      "ocean-world": "bg-blue-200 text-blue-800",
+      "hot-jupiter": "bg-amber-200 text-amber-800",
+      "gas-giant": "bg-purple-200 text-purple-800",
+      unknown: "bg-gray-200 text-gray-700",
     };
     const typeLabels: Record<string, string> = {
       rocky: "Rocky",
@@ -265,7 +272,7 @@ const sorts = [
             <div style="font-size:.875rem;font-weight:500;color:var(--ds-gray-1000);line-height:1.25">${p.name}</div>
             <div style="font-size:.75rem;color:var(--ds-gray-600);font-family:var(--font-geist-mono);margin-top:.125rem">${p.host_star}</div>
           </div>
-          <span style="flex-shrink:0;font-size:.625rem;font-weight:500;padding:.125rem .5rem;border-radius:999px;${typeStyle}">${typeLabel}</span>
+          <span class="${typeStyle}" style="flex-shrink:0;font-size:.625rem;font-weight:500;padding:.125rem .5rem;border-radius:999px;">${typeLabel}</span>
         </div>
         <div style="display:flex;align-items:center;gap:.5rem;margin-top:.75rem;margin-bottom:.25rem">
           <div style="flex:1;height:3px;background:var(--ds-gray-300);border-radius:2px;overflow:hidden">
@@ -362,6 +369,7 @@ const sorts = [
   let searchTimer: ReturnType<typeof setTimeout>;
   searchEl.addEventListener("input", () => {
     clearTimeout(searchTimer);
+    noDataFound.classList.add("hidden");
     searchTimer = setTimeout(() => {
       const p = { ...readParams(), q: searchEl.value };
       pushURL(p);

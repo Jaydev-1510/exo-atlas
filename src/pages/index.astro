@@ -1,6 +1,7 @@
 ---
 import Layout from "@/layouts/base.astro";
 import PlanetCard from "@/components/planetCard.astro";
+import Icon from "@/components/icons.astro";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 
 const [
@@ -103,8 +104,11 @@ const latestYear = Math.max(
       </h2>
       <a
         href="/atlas"
-        class="text-sm text-secondary hover:text-primary transition-colors"
-        >View all
+        class="group text-sm text-secondary hover:text-primary transition-colors flex items-center gap-1"
+        >View all <Icon
+          glyph="arrow-right"
+          class="h-full w-auto group-hover:translate-x-2 group-hover:scale-110 transition-all duration-300"
+        />
       </a>
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
