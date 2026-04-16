@@ -15,14 +15,16 @@
   "dependencies": {
     "@astrojs/vercel": "^10.0.4",
     "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "^2.103.2",
     "@tailwindcss/vite": "^4.2.2",
-    "astro": "^6.1.5",
+    "astro": "^6.1.7",
+    "prettier": "^3.8.3",
+    "prettier-plugin-astro": "^0.14.1",
     "tailwind": "^4.0.0",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2"
   },
   "devDependencies": {
-    "supabase": "^2.89.1"
+    "supabase": "^2.91.3"
   }
 }
