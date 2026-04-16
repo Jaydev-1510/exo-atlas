@@ -1,0 +1,366 @@
+---
+import Layout from "@/layouts/base.astro";
+import Icon from "@/components/icons.astro";
+import { supabaseAdmin } from "@/lib/supabase";
+
+const pageSize = 1000;
+let from = 0;
+let rows = [];
+
+while (true) {
+  const { data: rawRows, error } = await supabaseAdmin
+    .from("planets")
+    .select("discovery_year, planet_type, discovery_method, name")
+    .not("discovery_year", "is", null)
+    .order("discovery_year", { ascending: true })
+    .range(from, from + pageSize - 1);
+
+  if (error) throw error;
+
+  rows.push(...rawRows);
+
+  if (rawRows.length < pageSize) break;
+  from += pageSize;
+}
+
+type Row = {
+  discovery_year: number;
+  planet_type: string | null;
+  discovery_method: string | null;
+  name: string;
+};
+
+const byYear = (rows as Row[]).reduce<Record<number, Row[]>>((acc, r) => {
+  const y = r.discovery_year;
+  if (!acc[y]) acc[y] = [];
+  acc[y].push(r);
+  return acc;
+}, {});
+
+const years = Object.keys(byYear)
+  .map(Number)
+  .sort((a, b) => a - b);
+const maxCount = Math.max(...years.map((y) => byYear[y].length));
+const totalByYear = years.map((y) => ({ year: y, count: byYear[y].length }));
+
+const methods = [
+  "transit",
+  "radial-velocity",
+  "direct-imaging",
+  "microlensing",
+  "astrometry",
+  "timing",
+  "other",
+];
+const methodColors: Record<string, string> = {
+  transit: "var(--ds-blue-800)",
+  "radial-velocity": "var(--ds-teal-800)",
+  "direct-imaging": "var(--ds-purple-800)",
+  microlensing: "var(--ds-amber-800)",
+  astrometry: "var(--ds-pink-800)",
+  timing: "var(--ds-green-800)",
+  other: "var(--ds-gray-800)",
+};
+---
+
+<Layout title="Discovery Timeline — Exoplanet Atlas">
+  <section class="max-w-6xl mx-auto px-4 pb-10">
+    <header class="flex items-center justify-center py-10 min-h-[12em]">
+      <h1
+        class="absolute text-center font-bold font-pixel-line tracking-tighter text-[9em] select-none bg-linear-0 from-black to-primary text-transparent bg-clip-text whitespace-nowrap leading-40"
+      >
+        Discovery timeline.
+      </h1>
+      <p class="font-mono text-md text-secondary mt-[8em] z-20">
+        Every confirmed exoplanet, from the first detection in 1992 to today.
+      </p>
+    </header>
+
+    <div
+      class="bg-background-200 border border-gray-300 rounded-xl h-25 p-5 mb-8 flex gap-24 items-center"
+    >
+      <div>
+        <div
+          class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+        >
+          Method
+        </div>
+        <div class="flex items-center gap-3">
+          {
+            methods.map((m) => (
+              <button
+                data-method={m}
+                class="method-pill text-xs px-3 py-1.5 rounded-full border border-gray-300 bg-black text-gray-700 hover:border-gray-500 transition-colors capitalize shrink-0"
+              >
+                {m.replace("-", " ")}
+              </button>
+            ))
+          }
+          <button
+            data-method=""
+            class="method-pill text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:border-gray-500 transition-colors bg-black"
+          >
+            All
+          </button>
+        </div>
+      </div>
+      <div
+        id="method-desc"
+        class="bg-black border border-gray-300 rounded-lg h-full w-full p-3 text-xs text-secondary"
+      >
+      </div>
+    </div>
+
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-6 mb-6">
+      <div
+        class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-6"
+      >
+        Discoveries per year
+      </div>
+      <canvas id="bar-chart" height="180" style="width:100%;height:180px"
+      ></canvas>
+      <div class="flex justify-between mt-2">
+        <span class="font-mono text-xs text-gray-600">{years[0]}</span>
+        <span id="hover-label" class="font-mono text-xs text-gray-600"></span>
+        <span class="font-mono text-xs text-gray-600"
+          >{years[years.length - 1]}</span
+        >
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {
+        [
+          { label: "First confirmed", value: years[0].toString() },
+          { label: "Most in one year", value: `${maxCount} planets` },
+          {
+            label: "Peak year",
+            value: totalByYear
+              .sort((a, b) => b.count - a.count)[0]
+              .year.toString(),
+          },
+        ].map((s) => (
+          <div class="group bg-background-200 border border-gray-300 rounded-xl px-5 py-4">
+            <div class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]">
+              {s.label}
+            </div>
+            <div class="font-mono text-heading-20 text-secondary group-hover:text-primary transition-color duration-300">
+              {s.value}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+
+    <div
+      id="year-detail"
+      class="bg-background-200 border border-gray-300 rounded-xl p-6 mb-6"
+      style="display:none"
+    >
+      <div class="flex items-baseline justify-between mb-4">
+        <div
+          id="year-detail-title"
+          class="font-mono text-xs text-gray-600 uppercase tracking-widest"
+        >
+        </div>
+        <button
+          onclick="document.getElementById('year-detail').style.display='none'"
+          class="text-xs font-mono uppercase text-gray-600 hover:text-secondary flex gap-1"
+          >close <Icon glyph="cross" /></button
+        >
+      </div>
+      <div
+        id="year-detail-grid"
+        class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2"
+      >
+      </div>
+    </div>
+
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-6">
+      <div
+        class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-6"
+      >
+        By discovery method
+      </div>
+      <div class="space-y-3">
+        {
+          methods.map((m) => {
+            const count = (rows as Row[]).filter(
+              (r) => r.discovery_method === m,
+            ).length;
+            const pct = Math.round((count / (rows?.length ?? 1)) * 100);
+            return (
+              <div class="flex items-center gap-3">
+                <div class="w-28 text-xs text-gray-600 hover:text-primary transition-color duration-300 capitalize shrink-0">
+                  {m.replace("-", " ")}
+                </div>
+                <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
+                  <div
+                    class="h-full rounded-full"
+                    style={`width:${pct}%;background:${methodColors[m]}`}
+                  />
+                </div>
+                <div class="font-mono text-xs text-gray-600 w-16 text-right">
+                  {count.toLocaleString()}
+                </div>
+              </div>
+            );
+          })
+        }
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script is:inline define:vars={{ totalByYear, byYear, years, methodColors }}>
+  const canvas = document.getElementById("bar-chart");
+  canvas.width = canvas.offsetWidth || 800;
+  const W = canvas.width,
+    H = canvas.height;
+  const ctx = canvas.getContext("2d");
+  const hoverLabel = document.getElementById("hover-label");
+  const methodDesc = {
+    transit: "Planet passes in front, causing a measurable dip in starlight.",
+    "radial-velocity":
+      "Star’s motion shifts due to gravitational pull of a planet.",
+      "direct-imaging": "Planet observed directly by suppressing starlight.",
+    microlensing:
+      "Gravity of a system bends and magnifies background starlight.",
+      astrometry: "Precise tracking of a star’s positional wobble on the sky.",
+      timing: "Regular signals vary due to gravitational influence of a planet.",
+  };
+  const descBox = document.getElementById("method-dec");
+
+  let activeMethod = "";
+  totalByYear.sort((a, b) => a.year - b.year);
+  let chartData = totalByYear;
+
+  function getFilteredData(method) {
+    if (!method) return totalByYear;
+    return years.map((y) => ({
+      year: y,
+      count: (byYear[y] || []).filter((r) => r.discovery_method === method)
+        .length,
+    }));
+  }
+
+  function drawChart(data, highlightYear = null) {
+    ctx.clearRect(0, 0, W, H);
+    const max = Math.max(...data.map((d) => d.count), 1);
+    const barW = (W / data.length) * 0.7;
+    const gap = (W / data.length) * 0.3;
+
+    data.forEach((d, i) => {
+      const bh = (d.count / max) * (H - 20);
+      const bx = i * (W / data.length) + gap / 2;
+      const by = H - bh - 10;
+      const col = methodColors[activeMethod] || "var(--ds-blue-500)";
+      const isHighlight = d.year === highlightYear;
+
+      ctx.fillStyle = isHighlight
+        ? col
+        : d.count > 0
+          ? col.replace(")", ",0.5)").replace("var(", "var(")
+          : "rgba(255,255,255,0.05)";
+
+      ctx.fillStyle = isHighlight
+        ? activeMethod
+          ? getComputedStyle(document.documentElement).getPropertyValue(
+              "--ds-blue-500",
+            )
+          : "#3b82f6"
+        : d.count > 0
+          ? "rgba(59,130,246,0.45)"
+          : "rgba(255,255,255,0.05)";
+
+      if (activeMethod) {
+        const colors = {
+          transit: isHighlight ? "#0060d175" : "#0060d1",
+          "radial-velocity": isHighlight ? "#0d8c7d75" : "#0d8c7d",
+          "direct-imaging": isHighlight ? "#8e4ec675" : "#8e4ec6",
+          microlensing: isHighlight ? "#ff990a75" : "#ff990a",
+          astrometry: isHighlight ? "#de267075" : "#de2670",
+          timing: isHighlight ? "#388e4a75" : "#388e4a",
+          other: isHighlight ? "#7d7d7d75" : "#7d7d7d",
+        };
+        ctx.fillStyle =
+          colors[activeMethod] ??
+          (isHighlight ? "#3b82f6" : "rgba(59,130,246,0.45)");
+      }
+
+      ctx.beginPath();
+      ctx.roundRect(bx, by, barW, bh, 2);
+      ctx.fill();
+    });
+  }
+  drawChart(chartData);
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const idx = Math.floor(mx / (W / chartData.length));
+    const d = chartData[idx];
+    if (d) {
+      hoverLabel.textContent = `${d.year}: ${d.count} planets`;
+      drawChart(chartData, d.year);
+    }
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    hoverLabel.textContent = "";
+    drawChart(chartData);
+  });
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (W / rect.width);
+    const idx = Math.floor(mx / (W / chartData.length));
+    const d = chartData[idx];
+    if (!d || !d.count) return;
+
+    const panel = document.getElementById("year-detail");
+    const title = document.getElementById("year-detail-title");
+    const grid = document.getElementById("year-detail-grid");
+    const planets = (byYear[d.year] || []).filter(
+      (r) => !activeMethod || r.discovery_method === activeMethod,
+    );
+
+    title.textContent = `${d.year} — ${planets.length} planets discovered`;
+    grid.innerHTML = planets
+      .slice(0, 48)
+      .map(
+        (p) => `
+    <a href="/planet/${p.name.toLowerCase().replace(/\s+/g, "-")}"
+       style="display:block;background:var(--ds-background-100);border:0.5px solid var(--ds-gray-300);border-radius:8px;padding:8px 10px;text-decoration:none;transition:border-color .15s"
+       onmouseenter="this.style.borderColor='var(--ds-gray-500)'"
+       onmouseleave="this.style.borderColor='var(--ds-gray-300)'">
+      <div style="font-size:12px;font-weight:500;color:var(--ds-primary);margin-bottom:2px">${p.name}</div>
+      <div style="font-size:10px;color:var(--ds-gray-600);font-family:var(--font-geist-mono)">${p.discovery_method ?? "unknown"}</div>
+    </a>
+  `,
+      )
+      .join("");
+    panel.style.display = "block";
+    panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  });
+
+  document.querySelectorAll(".method-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      activeMethod = btn.dataset.method ?? "";
+      document.getElementById("method-desc").textContent =
+        methodDesc[activeMethod];
+      document.querySelectorAll(".method-pill").forEach((b) => {
+        b.style.background = "black";
+        b.style.color = "";
+        b.style.borderColor = "";
+      });
+      if (activeMethod) {
+        btn.style.background = "var(--primary)";
+        btn.style.color = "var(--ds-background-100)";
+        btn.style.borderColor = "var(--primary)";
+      }
+      chartData = getFilteredData(activeMethod);
+      drawChart(chartData);
+    });
+  });
+</script>
