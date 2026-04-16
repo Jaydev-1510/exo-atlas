@@ -61,7 +61,7 @@ const sorts = [
       type="text"
       value={q}
       placeholder="Search planets, stars..."
-      class="bg-background-200 border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-1000 placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-56"
+      class="bg-background-200 border border-gray-300 rounded-lg px-3 py-2 text-sm text-primary placeholder:text-gray-500 focus:outline-none focus:border-gray-600 w-56"
     />
     <div class="flex gap-1.5 flex-wrap">
       {
@@ -71,7 +71,7 @@ const sorts = [
             data-value={t.value}
             class={`filter-pill text-xs px-3 py-1.5 rounded-full border transition-colors cursor-pointer ${
               type === t.value
-                ? "bg-gray-1000 text-background-100 border-gray-1000"
+                ? "bg-primary text-background-100 border-primary"
                 : "border-gray-300 text-gray-700 hover:border-gray-500"
             }`}
           >
@@ -85,7 +85,7 @@ const sorts = [
       <label class="text-xs text-gray-600">Sort</label>
       <select
         id="sort-select"
-        class="bg-background-200 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-gray-900 focus:outline-none"
+        class="bg-background-200 border border-gray-300 rounded-lg px-2 py-1.5 text-xs text-secondary focus:outline-none"
       >
         {
           sorts.map((s) => (
@@ -269,7 +269,7 @@ const sorts = [
       <div style="padding:.75rem">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.25rem">
           <div>
-            <div style="font-size:.875rem;font-weight:500;color:var(--ds-gray-1000);line-height:1.25">${p.name}</div>
+            <div style="font-size:.875rem;font-weight:500;color:var(--primary);line-height:1.25">${p.name}</div>
             <div style="font-size:.75rem;color:var(--ds-gray-600);font-family:var(--font-geist-mono);margin-top:.125rem">${p.host_star}</div>
           </div>
           <span class="${typeStyle}" style="flex-shrink:0;font-size:.625rem;font-weight:500;padding:.125rem .5rem;border-radius:999px;">${typeLabel}</span>
@@ -283,19 +283,19 @@ const sorts = [
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.375rem .75rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--ds-gray-200)">
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Radius</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--ds-gray-900);margin-top:.125rem">${fmt(p.radius_earth)} R⊕</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${fmt(p.radius_earth)} R⊕</div>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Period</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--ds-gray-900);margin-top:.125rem">${period}</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${period}</div>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Temp</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--ds-gray-900);margin-top:.125rem">${fmt(p.eq_temperature, 0)} K</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${fmt(p.eq_temperature, 0)} K</div>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Found</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--ds-gray-900);margin-top:.125rem">${p.discovery_year ?? "—"}</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${p.discovery_year ?? "—"}</div>
           </div>
         </div>
       </div>`;
@@ -353,9 +353,9 @@ const sorts = [
     document.querySelectorAll(".filter-pill").forEach((btn) => {
       const val = (btn as HTMLElement).dataset.value ?? "";
       const active = val === p.type;
-      btn.classList.toggle("bg-gray-1000", active);
+      btn.classList.toggle("bg-primary", active);
       btn.classList.toggle("text-background-100", active);
-      btn.classList.toggle("border-gray-1000", active);
+      btn.classList.toggle("border-primary", active);
       btn.classList.toggle("border-gray-300", !active);
       btn.classList.toggle("text-gray-700", !active);
     });
