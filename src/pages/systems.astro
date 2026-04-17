@@ -1,0 +1,368 @@
+---
+import Layout from "@/layouts/base.astro";
+import { supabaseAdmin } from "@/lib/supabase";
+
+const { data: rows } = await supabaseAdmin
+  .from("planets")
+  .select(
+    "name, host_star, planet_type, distance_ly, habitability_pct, radius_earth",
+  )
+  .not("distance_ly", "is", null)
+  .lte("distance_ly", 2000)
+  .order("distance_ly", { ascending: true });
+
+type Row = {
+  name: string;
+  host_star: string;
+  planet_type: string | null;
+  distance_ly: number | null;
+  habitability_pct: number | null;
+  radius_earth: number | null;
+};
+
+const systemMap = new Map<string, Row[]>();
+for (const row of rows as Row[]) {
+  if (!systemMap.has(row.host_star)) systemMap.set(row.host_star, []);
+  systemMap.get(row.host_star)!.push(row);
+}
+
+const systems = Array.from(systemMap.entries())
+  .map(([star, planets]) => ({
+    star,
+    planets,
+    distance: planets[0].distance_ly ?? 0,
+    maxHab: Math.max(...planets.map((planet) => planet.habitability_pct ?? 0)),
+  }))
+  .sort((a, b) => a.distance - b.distance);
+
+const nodes = [
+  ...systems.map((system) => ({
+    id: `star:${system.star}`,
+    type: "star",
+    label: system.star,
+    distance: system.distance,
+    count: system.planets.length,
+    maxHab: system.maxHab,
+  })),
+  ...systems.flatMap((system) =>
+    system.planets.map((planet) => ({
+      id: `planet:${planet.name}`,
+      type: "planet",
+      label: planet.name,
+      planet_type: planet.planet_type,
+      hab: planet.habitability_pct ?? 0,
+      radius: planet.radius_earth ?? 1,
+      star: planet.host_star,
+    })),
+  ),
+];
+
+const links = systems.flatMap((system) =>
+  system.planets.map((planet) => ({
+    source: `star:${system.star}`,
+    target: `planet:${planet.name}`,
+  })),
+);
+
+---
+
+<Layout title="Stellar Systems — Exoplanet Atlas">
+  <section class="max-w-6xl mx-auto px-4 pb-10">
+    <header class="flex items-center justify-center py-10 min-h-[12em]">
+      <h1
+        class="absolute text-center font-bold font-pixel-line tracking-tighter text-[9em] select-none bg-linear-0 from-black to-primary text-transparent bg-clip-text whitespace-nowrap leading-40"
+      >
+        Stellar Systems.
+      </h1>
+
+      <p class="font-mono text-md text-secondary mt-[8em] z-20">
+        Host stars and their planets within 2,000 light-years.
+      </p>
+    </header>
+
+    <div class="flex flex-wrap gap-2 mb-6 items-center">
+      <span
+        class="text-xs text-gray-600 font-mono uppercase tracking-widest mr-2"
+        >Distance</span
+      >
+      {
+        [100, 250, 500, 1000, 2000].map((ly) => (
+          <button
+            data-dist={ly}
+            class="dist-pill text-xs px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 hover:border-gray-500 transition-colors font-mono"
+          >
+            ≤{ly} ly
+          </button>
+        ))
+      }
+    </div>
+
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      {
+        [
+          { label: "Systems shown", value: systems.length.toLocaleString() },
+          {
+            label: "Planets shown",
+            value: (rows?.length ?? 0).toLocaleString(),
+          },
+          {
+            label: "Nearest system",
+            value: `${systems[0]?.star} (${systems[0]?.distance.toFixed(1)} ly)`,
+          },
+        ].map((s) => (
+          <div class="bg-background-200 border border-gray-300 rounded-xl px-5 py-4">
+            <div class="text-gray-500 mb-1 text-[10px] uppercase tracking-[0.07em]">
+              {s.label}
+            </div>
+            <div class="font-mono text-sm text-gray-1000">{s.value}</div>
+          </div>
+        ))
+      }
+    </div>
+
+    <div
+      class="relative h-250 bg-background-200 border border-gray-300 rounded-xl overflow-hidden mb-6"
+    >
+      <canvas id="graph-canvas" style="width:100%;height:100%"></canvas>
+      <div
+        id="graph-tooltip"
+        class="hidden absolute bg-background-100/75 backdrop-blur-lg border-[0.5px] border-gray-400 rounded-lg px-3.5 py-2.5 text-xs pointer-events-none"
+      >
+      </div>
+      <div class="absolute bottom-3 right-3 flex gap-3 items-center">
+        <div class="flex items-center gap-1.25">
+          <div class="w-2 h-2 rounded-full bg-amber-600"></div>
+          <span class="text-[10px] text-gray-600 font-mono">Star</span>
+        </div>
+
+        <div class="flex items-center gap-1.25">
+          <div class="w-2 h-2 rounded-full bg-green-600"></div>
+          <span class="text-[10px] text-gray-600 font-mono">High hab.</span>
+        </div>
+
+        <div class="flex items-center gap-1.25">
+          <div class="w-2 h-2 rounded-full bg-blue-600"></div>
+          <span class="text-[10px] text-gray-600 font-mono">Planet</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script is:inline define:vars={{ nodes, links }}>
+  const canvas = document.getElementById("graph-canvas");
+  canvas.width = canvas.offsetWidth || 900;
+  canvas.height = canvas.offsetHeight || 560;
+  const canvasWidth = canvas.width,
+    canvasHeight = canvas.height;
+  const context = canvas.getContext("2d");
+  const tooltip = document.getElementById("graph-tooltip");
+
+  const nodeMap = new Map();
+  nodes.forEach((node) => {
+    nodeMap.set(node.id, {
+      ...node,
+      x: canvasWidth / 2 + (Math.random() - 0.5) * canvasWidth * 0.6,
+      y: canvasHeight / 2 + (Math.random() - 0.5) * canvasHeight * 0.6,
+      vx: 0,
+      vy: 0,
+    });
+  });
+
+  const linkData = links
+    .map((link) => ({
+      source: nodeMap.get(link.source),
+      target: nodeMap.get(link.target),
+    }))
+    .filter((link) => link.source && link.target);
+
+  function planetColor(node) {
+    if (node.type === "star") return "#ffd060";
+    if (node.hab >= 70) return "#22c55e";
+    if (node.hab >= 40) return "#f59e0b";
+    return "#3b82f6";
+  }
+
+  function nodeRadius(node) {
+    if (node.type === "star") return Math.min(4 + (node.count ?? 1) * 1.25, 14);
+    return Math.min(Math.max((node.radius ?? 1) * 1.75, 3), 8);
+  }
+
+  let alpha = 2;
+
+  function simulate() {
+    if (alpha < 0.001) return;
+
+    const nodes = Array.from(nodeMap.values());
+
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const a = nodes[i],
+          b = nodes[j];
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+        const strength = a.type === "star" && b.type === "star" ? 856 : 200;
+        const force = (strength / (dist * dist)) * alpha;
+        a.vx -= (dx / dist) * force;
+        a.vy -= (dy / dist) * force;
+        b.vx += (dx / dist) * force;
+        b.vy += (dy / dist) * force;
+      }
+    }
+
+    linkData.forEach((link) => {
+      const dx = link.target.x - link.source.x;
+      const dy = link.target.y - link.source.y;
+      const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+      const target = link.source.type === "star" ? 60 : 40;
+      const force = ((dist - target) / dist) * 0.3 * alpha;
+      link.source.vx += dx * force;
+      link.source.vy += dy * force;
+      link.target.vx -= dx * force;
+      link.target.vy -= dy * force;
+    });
+
+    nodes.forEach((node) => {
+      node.vx += (canvasWidth / 2 - node.x) * 0.01 * alpha;
+      node.vy += (canvasHeight / 2 - node.y) * 0.01 * alpha;
+    });
+
+    nodes.forEach((node) => {
+      node.vx *= 0.6;
+      node.vy *= 0.6;
+      node.x = Math.max(20, Math.min(canvasWidth - 20, node.x + node.vx));
+      node.y = Math.max(20, Math.min(canvasHeight - 20, node.y + node.vy));
+    });
+    alpha *= 0.97;
+  }
+
+  function draw() {
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    context.fillStyle = "#000000";
+    context.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    linkData.forEach((link) => {
+      context.beginPath();
+      context.moveTo(link.source.x, link.source.y);
+      context.lineTo(link.target.x, link.target.y);
+      context.strokeStyle = "rgba(255,255,255,0.2)";
+      context.lineWidth = 0.5;
+      context.stroke();
+    });
+
+    Array.from(nodeMap.values()).forEach((node) => {
+      const radius = nodeRadius(node);
+      const col = planetColor(node);
+
+      if (node.type === "star") {
+        context.beginPath();
+        context.arc(node.x, node.y, radius + 4, 0, Math.PI * 2);
+        context.fillStyle = col + "20";
+        context.fill();
+      }
+
+      context.beginPath();
+      context.arc(node.x, node.y, radius, 0, Math.PI * 2);
+      context.fillStyle = col;
+      context.fill();
+
+      if (node.type === "star" && node.count > 1) {
+        context.fillStyle = "rgba(255,255,255,0.45)";
+        context.font = "9px monospace";
+        context.fillText(node.label, node.x + radius + 3, node.y + 3);
+      }
+    });
+  }
+
+  function tick() {
+    simulate();
+    draw();
+    requestAnimationFrame(tick);
+  }
+  tick();
+
+  canvas.addEventListener("mousemove", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvasWidth / rect.width);
+    const my = (e.clientY - rect.top) * (canvasHeight / rect.height);
+
+    let hit = null;
+    Array.from(nodeMap.values()).forEach((node) => {
+      const dx = node.x - mx,
+        dy = node.y - my;
+      if (Math.sqrt(dx * dx + dy * dy) < nodeRadius(node) + 6) hit = node;
+    });
+
+    if (hit) {
+      canvas.style.cursor = "pointer";
+      tooltip.style.display = "block";
+      tooltip.style.left = `${e.clientX - canvas.getBoundingClientRect().left + 12}px`;
+      tooltip.style.top = `${e.clientY - canvas.getBoundingClientRect().top - 10}px`;
+      if (hit.type === "star") {
+        tooltip.innerHTML = `
+        <div style="font-weight:500;color:var(--primary);margin-bottom:4px">${hit.label}</div>
+        <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${hit.count} planet${hit.count > 1 ? "s" : ""}</div>
+        <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${hit.distance.toFixed(1)} ly away</div>
+        <div style="color:var(--ds-green-600);font-family:var(--font-geist-mono);font-size:11px">Max hab: ${hit.maxHab}%</div>
+      `;
+      } else {
+        tooltip.innerHTML = `
+        <div style="font-weight:500;color:var(--primary);margin-bottom:4px">${hit.label}</div>
+        <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${hit.planet_type ?? "unknown"}</div>
+        <div style="color:var(--ds-green-600);font-family:var(--font-geist-mono);font-size:11px">Hab: ${hit.hab}%</div>
+        <div style="color:var(--ds-gray-500);font-family:var(--font-geist-mono);font-size:11px;margin-top:2px">click to view passport</div>
+      `;
+      }
+    } else {
+      canvas.style.cursor = "default";
+      tooltip.style.display = "none";
+    }
+  });
+
+  canvas.addEventListener("mouseleave", () => {
+    tooltip.style.display = "none";
+  });
+
+  canvas.addEventListener("click", (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvasWidth / rect.width);
+    const my = (e.clientY - rect.top) * (canvasHeight / rect.height);
+
+    Array.from(nodeMap.values()).forEach((node) => {
+      const dx = node.x - mx,
+        dy = node.y - my;
+      if (
+        Math.sqrt(dx * dx + dy * dy) < nodeRadius(node) + 6 &&
+        node.type === "planet"
+      ) {
+        window.location.href = `/planet/${node.label.toLowerCase().replace(/\s+/g, "-")}`;
+      }
+    });
+  });
+
+  document.querySelectorAll(".dist-pill").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".dist-pill").forEach((b) => {
+        b.style.background = "";
+        b.style.color = "";
+        b.style.borderColor = "";
+      });
+      btn.style.background = "var(--primary)";
+      btn.style.color = "var(--ds-background-100)";
+      btn.style.borderColor = "var(--primary)";
+
+      const maxDist = Number(btn.dataset.dist);
+      Array.from(nodeMap.values()).forEach((node) => {
+        if (node.type === "star") {
+          node.visible = node.distance <= maxDist;
+        } else {
+          const star = nodeMap.get(`star:${node.star}`);
+          node.visible = star ? star.distance <= maxDist : false;
+        }
+      });
+      alpha = 1;
+    });
+  });
+</script>
