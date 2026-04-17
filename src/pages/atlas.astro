@@ -2,12 +2,12 @@
 import Layout from "@/layouts/base.astro";
 import PlanetCard from "@/components/planetCard.astro";
 import { supabase } from "@/lib/supabase";
-
-const sp = Astro.url.searchParams;
-const q = sp.get("q") || "";
-const type = sp.get("type") || "";
-const sort = sp.get("sort") || "habitability_pct";
-const hab = sp.get("habitable") === "true";
+// 
+const searchParams = Astro.url.searchParams;
+const q = searchParams.get("q") || "";
+const type = searchParams.get("type") || "";
+const sort = searchParams.get("sort") || "habitability_pct";
+const hab = searchParams.get("habitable") === "true";
 
 const { data: planets } = await supabase.rpc("get_planets", {
   p_search: q || undefined,
@@ -50,9 +50,9 @@ const sorts = [
     >
       Planet Atlas.
     </h1>
-    <p class="font-mono text-md text-secondary mt-[8em] z-20">
+    <params class="font-mono text-md text-secondary mt-[8em] z-20">
       Browse {Number(total).toLocaleString()} worlds
-    </p>
+    </params>
   </header>
 
   <div class="flex flex-wrap gap-2 mb-6" id="filter-bar">
@@ -115,16 +115,16 @@ const sorts = [
     class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5"
   >
     <div id="planet-grid" class="contents">
-      {planets?.map((p) => <PlanetCard {...p} />)}
+      {planets?.map((params) => <PlanetCard {...params} />)}
     </div>
   </div>
   <div
     id="empty-state"
     class="hidden items-center justify-center py-30 border border-dashed border-white/10 rounded-lg"
   >
-    <p class="text-sm text-center tracking-widest uppercase text-gray-500">
+    <params class="text-sm text-center tracking-widest uppercase text-gray-500">
       No planets found.
-    </p>
+    </params>
   </div>
   <div id="load-more-wrap" class="flex justify-center mt-10">
     <button
@@ -156,41 +156,42 @@ const sorts = [
   }
 
   function readParams(): Params {
-    const sp = new URLSearchParams(window.location.search);
+    const searchParams = new URLSearchParams(window.location.search);
     return {
-      q: sp.get("q") || "",
-      type: sp.get("type") || "",
-      sort: sp.get("sort") || "habitability_pct",
-      habitable: sp.get("habitable") === "true",
+      q: searchParams.get("q") || "",
+      type: searchParams.get("type") || "",
+      sort: searchParams.get("sort") || "habitability_pct",
+      habitable: searchParams.get("habitable") === "true",
     };
   }
 
-  function pushURL(p: Params) {
-    const sp = new URLSearchParams();
-    if (p.q) sp.set("q", p.q);
-    if (p.type) sp.set("type", p.type);
-    if (p.sort && p.sort !== "habitability_pct") sp.set("sort", p.sort);
-    if (p.habitable) sp.set("habitable", "true");
-    window.history.pushState({}, "", `?${sp.toString()}`);
+  function pushURL(params: Params) {
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.set("q", params.q);
+    if (params.type) searchParams.set("type", params.type);
+    if (params.sort && params.sort !== "habitability_pct")
+      searchParams.set("sort", params.sort);
+    if (params.habitable) searchParams.set("habitable", "true");
+    window.history.pushState({}, "", `?${searchParams.toString()}`);
   }
 
-  async function fetchCards(p: Params, offset = 0, replace = true) {
-    console.log("fetchCards", p);
+  async function fetchCards(params: Params, offset = 0, replace = true) {
+    console.log("fetchCards", params);
 
     if (replace) {
       gridOuter.innerHTML =
         '<div style="grid-column:1/-1;padding:2rem;text-align:center;color:var(--ds-gray-600);font-size:.875rem">Loading...</div>';
     }
 
-    const sp = new URLSearchParams();
-    if (p.q) sp.set("q", p.q);
-    if (p.type) sp.set("type", p.type);
-    if (p.sort) sp.set("sort", p.sort);
-    if (p.habitable) sp.set("habitable", "true");
-    sp.set("limit", "48");
-    sp.set("offset", String(offset));
+    const searchParams = new URLSearchParams();
+    if (params.q) searchParams.set("q", params.q);
+    if (params.type) searchParams.set("type", params.type);
+    if (params.sort) searchParams.set("sort", params.sort);
+    if (params.habitable) searchParams.set("habitable", "true");
+    searchParams.set("limit", "48");
+    searchParams.set("offset", String(offset));
 
-    const res = await fetch(`/api/planets?${sp}`);
+    const res = await fetch(`/api/planets?${searchParams}`);
     const json = await res.json();
 
     if (replace) gridOuter.innerHTML = "";
@@ -219,7 +220,7 @@ const sorts = [
     loadWrap.style.display = json.meta.hasMore ? "flex" : "none";
   }
 
-  function buildCard(p: any) {
+  function buildCard(params: any) {
     const typeStyles: Record<string, string> = {
       rocky: "bg-amber-100 text-amber-500",
       "super-earth": "bg-teal-200 text-teal-800",
@@ -241,36 +242,36 @@ const sorts = [
       unknown: "Unknown",
     };
 
-    const typeStyle = typeStyles[p.planet_type] ?? typeStyles["unknown"];
-    const typeLabel = typeLabels[p.planet_type] ?? "Unknown";
+    const typeStyle = typeStyles[params.planet_type] ?? typeStyles["unknown"];
+    const typeLabel = typeLabels[params.planet_type] ?? "Unknown";
 
-    const habPct = p.habitability_pct ?? 0;
+    const habPct = params.habitability_pct ?? 0;
     const habColor =
       habPct >= 70
-        ? "var(--ds-green-500)"
+        ? "var(--ds-green-600)"
         : habPct >= 40
-          ? "var(--ds-amber-500)"
-          : "var(--ds-red-500)";
+          ? "var(--ds-amber-600)"
+          : "var(--ds-red-600)";
 
     const fmt = (v: any, d = 2) => (v != null ? Number(v).toFixed(d) : "—");
     const period =
-      p.orbital_period == null
+      params.orbital_period == null
         ? "—"
-        : p.orbital_period < 1
-          ? `${(p.orbital_period * 24).toFixed(1)}h`
-          : p.orbital_period > 1000
-            ? `${(p.orbital_period / 365.25).toFixed(1)}yr`
-            : `${Number(p.orbital_period).toFixed(1)}d`;
+        : params.orbital_period < 1
+          ? `${(params.orbital_period * 24).toFixed(1)}h`
+          : params.orbital_period > 1000
+            ? `${(params.orbital_period / 365.25).toFixed(1)}yr`
+            : `${Number(params.orbital_period).toFixed(1)}d`;
 
     return `
       <div style="height:7rem;background:var(--ds-background-100);display:flex;align-items:center;justify-content:center;border-bottom:1px solid var(--ds-gray-200)">
-        <canvas class="planet-canvas" data-type="${p.planet_type}" data-radius="${p.radius_earth ?? 1}" width="80" height="80"></canvas>
+        <canvas class="planet-canvas" data-type="${params.planet_type}" data-radius="${params.radius_earth ?? 1}" width="80" height="80"></canvas>
       </div>
       <div style="padding:.75rem">
         <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:.5rem;margin-bottom:.25rem">
           <div>
-            <div style="font-size:.875rem;font-weight:500;color:var(--primary);line-height:1.25">${p.name}</div>
-            <div style="font-size:.75rem;color:var(--ds-gray-600);font-family:var(--font-geist-mono);margin-top:.125rem">${p.host_star}</div>
+            <div style="font-size:.875rem;font-weight:500;color:var(--primary);line-height:1.25">${params.name}</div>
+            <div style="font-size:.75rem;color:var(--ds-gray-600);font-family:var(--font-geist-mono);margin-top:.125rem">${params.host_star}</div>
           </div>
           <span class="${typeStyle}" style="flex-shrink:0;font-size:.625rem;font-weight:500;padding:.125rem .5rem;border-radius:999px;">${typeLabel}</span>
         </div>
@@ -283,7 +284,7 @@ const sorts = [
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:.375rem .75rem;margin-top:.75rem;padding-top:.75rem;border-top:1px solid var(--ds-gray-200)">
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Radius</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${fmt(p.radius_earth)} R⊕</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${fmt(params.radius_earth)} R⊕</div>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Period</div>
@@ -291,11 +292,11 @@ const sorts = [
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Temp</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${fmt(p.eq_temperature, 0)} K</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${fmt(params.eq_temperature, 0)} K</div>
           </div>
           <div>
             <div style="font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--ds-gray-500)">Found</div>
-            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${p.discovery_year ?? "—"}</div>
+            <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--secondary);margin-top:.125rem">${params.discovery_year ?? "—"}</div>
           </div>
         </div>
       </div>`;
@@ -319,40 +320,46 @@ const sorts = [
         canvas.dataset.drawn = "1";
         const type = canvas.dataset.type ?? "unknown";
         const radius = parseFloat(canvas.dataset.radius ?? "1");
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-        const [c1, c2] = COLORS[type] ?? COLORS["unknown"];
-        const s = canvas.width,
-          cx = s / 2,
-          cy = s / 2;
-        const r = Math.min(Math.max(radius * 10, 8), s * 0.44);
-        const g = ctx.createRadialGradient(
-          cx - r * 0.3,
-          cy - r * 0.3,
+        const context = canvas.getContext("2d");
+        if (!context) return;
+        const [color1, color2] = COLORS[type] ?? COLORS["unknown"];
+        const size = canvas.width,
+          centerX = size / 2,
+          centerY = size / 2;
+        const r = Math.min(Math.max(radius * 10, 8), size * 0.44);
+        const gradient = context.createRadialGradient(
+          centerX - r * 0.3,
+          centerY - r * 0.3,
           r * 0.1,
-          cx,
-          cy,
+          centerX,
+          centerY,
           r,
         );
-        g.addColorStop(0, c1);
-        g.addColorStop(1, c2);
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fillStyle = g;
-        ctx.fill();
-        ctx.beginPath();
-        ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.35, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255,255,255,0.07)";
-        ctx.fill();
+        gradient.addColorStop(0, color1);
+        gradient.addColorStop(1, color2);
+        context.beginPath();
+        context.arc(centerX, centerY, r, 0, Math.PI * 2);
+        context.fillStyle = gradient;
+        context.fill();
+        context.beginPath();
+        context.arc(
+          centerX - r * 0.25,
+          centerY - r * 0.25,
+          r * 0.35,
+          0,
+          Math.PI * 2,
+        );
+        context.fillStyle = "rgba(255,255,255,0.07)";
+        context.fill();
       });
   }
 
-  function syncFilterUI(p: Params) {
-    searchEl.value = p.q;
+  function syncFilterUI(params: Params) {
+    searchEl.value = params.q;
 
     document.querySelectorAll(".filter-pill").forEach((btn) => {
-      const val = (btn as HTMLElement).dataset.value ?? "";
-      const active = val === p.type;
+      const value = (btn as HTMLElement).dataset.value ?? "";
+      const active = value === params.type;
       btn.classList.toggle("bg-primary", active);
       btn.classList.toggle("text-background-100", active);
       btn.classList.toggle("border-primary", active);
@@ -360,8 +367,8 @@ const sorts = [
       btn.classList.toggle("text-gray-700", !active);
     });
 
-    sortSel.value = p.sort;
-    habToggle.checked = p.habitable;
+    sortSel.value = params.sort;
+    habToggle.checked = params.habitable;
   }
 
   drawPlanets();
@@ -371,33 +378,33 @@ const sorts = [
     clearTimeout(searchTimer);
     noDataFound.classList.add("hidden");
     searchTimer = setTimeout(() => {
-      const p = { ...readParams(), q: searchEl.value };
-      pushURL(p);
-      syncFilterUI(p);
-      fetchCards(p, 0, true);
+      const params = { ...readParams(), q: searchEl.value };
+      pushURL(params);
+      syncFilterUI(params);
+      fetchCards(params, 0, true);
     }, 300);
   });
 
   document.querySelectorAll(".filter-pill").forEach((btn) => {
     btn.addEventListener("click", () => {
       const value = (btn as HTMLElement).dataset.value ?? "";
-      const p = { ...readParams(), type: value };
-      pushURL(p);
-      syncFilterUI(p);
-      fetchCards(p, 0, true);
+      const params = { ...readParams(), type: value };
+      pushURL(params);
+      syncFilterUI(params);
+      fetchCards(params, 0, true);
     });
   });
 
   sortSel.addEventListener("change", () => {
-    const p = { ...readParams(), sort: sortSel.value };
-    pushURL(p);
-    fetchCards(p, 0, true);
+    const params = { ...readParams(), sort: sortSel.value };
+    pushURL(params);
+    fetchCards(params, 0, true);
   });
 
   habToggle.addEventListener("change", () => {
-    const p = { ...readParams(), habitable: habToggle.checked };
-    pushURL(p);
-    fetchCards(p, 0, true);
+    const params = { ...readParams(), habitable: habToggle.checked };
+    pushURL(params);
+    fetchCards(params, 0, true);
   });
 
   loadMore.addEventListener("click", () => {

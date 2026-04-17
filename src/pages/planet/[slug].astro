@@ -168,7 +168,7 @@ const planetType = planet.planet_type ?? "unknown";
         </div>
       </div>
     </div>
-    
+
     <SkyMap ra={planet.ra} dec={planet.dec} name={planet.name} />
 
     <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
@@ -200,9 +200,7 @@ const planetType = planet.planet_type ?? "unknown";
           >
             Weight here
           </div>
-          <div id="res-weight" class="font-mono text-sm text-primary">
-            — kg
-          </div>
+          <div id="res-weight" class="font-mono text-sm text-primary">— kg</div>
         </div>
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
           <div
@@ -218,9 +216,7 @@ const planetType = planet.planet_type ?? "unknown";
           >
             Surface gravity
           </div>
-          <div id="res-gravity" class="font-mono text-sm text-primary">
-            — g
-          </div>
+          <div id="res-gravity" class="font-mono text-sm text-primary">— g</div>
         </div>
       </div>
     </div>
@@ -243,10 +239,7 @@ const planetType = planet.planet_type ?? "unknown";
             >
               1 orbit takes
             </div>
-            <div
-              id="orbit-period-label"
-              class="font-mono text-sm text-primary"
-            >
+            <div id="orbit-period-label" class="font-mono text-sm text-primary">
               {period}
             </div>
           </div>
@@ -258,10 +251,7 @@ const planetType = planet.planet_type ?? "unknown";
             >
               Speed vs Earth
             </div>
-            <div
-              id="orbit-speed-label"
-              class="font-mono text-sm text-primary"
-            >
+            <div id="orbit-speed-label" class="font-mono text-sm text-primary">
               —
             </div>
           </div>
@@ -381,45 +371,53 @@ const planetType = planet.planet_type ?? "unknown";
     unknown: ["#505050", "#303030"],
   };
 
-  const pc = document.getElementById("planet-canvas");
-  const ctx = pc.getContext("2d");
-  const [c1, c2] = COLORS[planetType] ?? COLORS["unknown"];
-  const s = 200,
-    cx = s / 2,
-    cy = s / 2;
-  const r = Math.min(Math.max(planetRadius * 22, 12), s * 0.44);
-  const g = ctx.createRadialGradient(
-    cx - r * 0.3,
-    cy - r * 0.3,
-    r * 0.1,
-    cx,
-    cy,
-    r,
+  const planetCanvas = document.getElementById("planet-canvas");
+  const planetContext = planetCanvas.getContext("2d");
+  const [color1, color2] = COLORS[planetType] ?? COLORS["unknown"];
+  const size = 200,
+    centerX = size / 2,
+    centerY = size / 2;
+  const radius = Math.min(Math.max(planetRadius * 22, 12), size * 0.44);
+  const gradient = planetContext.createRadialGradient(
+    centerX - radius * 0.3,
+    centerY - radius * 0.3,
+    radius * 0.1,
+    centerX,
+    centerY,
+    radius,
   );
-  g.addColorStop(0, c1);
-  g.addColorStop(1, c2);
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.fillStyle = g;
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx - r * 0.25, cy - r * 0.25, r * 0.35, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(255,255,255,0.08)";
-  ctx.fill();
+  gradient.addColorStop(0, color1);
+  gradient.addColorStop(1, color2);
+  planetContext.beginPath();
+  planetContext.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  planetContext.fillStyle = gradient;
+  planetContext.fill();
+  planetContext.beginPath();
+  planetContext.arc(
+    centerX - radius * 0.25,
+    centerY - radius * 0.25,
+    radius * 0.35,
+    0,
+    Math.PI * 2,
+  );
+  planetContext.fillStyle = "rgba(255,255,255,0.08)";
+  planetContext.fill();
 
-  const tc = document.getElementById("transit-canvas");
-  tc.width = tc.offsetWidth || 400;
-  const tctx = tc.getContext("2d");
-  const W = tc.width,
-    H = 90;
-  const dip = Math.min((planetRadius / 10) * 30, 30);
+  const transitCanvas = document.getElementById("transit-canvas");
+  transitCanvas.width = transitCanvas.offsetWidth || 400;
+  const transitContext = transitCanvas.getContext("2d");
+  const transitCanvasW = transitCanvas.width,
+    transitCanvasH = 90;
+  const MAX_TRANSIT_DIP = 30;
+  const TRANSIT_SCALE_FACTOR = 3;
+  const dip = Math.min(planetRadius * TRANSIT_SCALE_FACTOR, MAX_TRANSIT_DIP);
 
-  tctx.strokeStyle = "var(--ds-teal-500)";
-  tctx.lineWidth = 1.5;
-  tctx.beginPath();
-  const pts = [];
-  for (let x = 0; x <= W; x++) {
-    const t = x / W;
+  transitContext.strokeStyle = "var(--ds-teal-500)";
+  transitContext.lineWidth = 1.5;
+  transitContext.beginPath();
+  const transitPoints = [];
+  for (let x = 0; x <= transitCanvasW; x++) {
+    const t = x / transitCanvasW;
     const center = 0.5;
     const width = 0.12;
     let y = 20;
@@ -427,59 +425,60 @@ const planetType = planet.planet_type ?? "unknown";
       const d = (t - center) / width;
       y += (dip * (1 - Math.cos(d * Math.PI))) / 2;
     }
-    pts.push([x, y]);
-    x === 0 ? tctx.moveTo(x, y) : tctx.lineTo(x, y);
+    transitPoints.push([x, y]);
+    x === 0 ? transitContext.moveTo(x, y) : transitContext.lineTo(x, y);
   }
-  tctx.stroke();
+  transitContext.stroke();
 
-  tctx.fillStyle = "var(--ds-gray-600)";
-  tctx.font = "10px monospace";
-  tctx.fillText("flux", 8, 16);
-  tctx.fillText("time →", W - 52, H - 6);
-  tctx.fillStyle = "var(--ds-teal-600)";
-  tctx.fillText(
+  transitContext.fillStyle = "var(--ds-gray-600)";
+  transitContext.font = "10px monospace";
+  transitContext.fillText("flux", 8, 16);
+  transitContext.fillText("time →", transitCanvasW - 52, transitCanvasH - 6);
+  transitContext.fillStyle = "var(--ds-teal-600)";
+  transitContext.fillText(
     `−${((planetRadius ** 2 / 100) * 100).toFixed(2)}%`,
-    W - 52,
+    transitCanvasW - 52,
     36,
   );
 
   let frame = 0;
   function animateTransit() {
-    tctx.clearRect(0, 0, W, H);
-    tctx.strokeStyle = "#14b8a6";
-    tctx.lineWidth = 1.5;
-    tctx.beginPath();
-    pts.forEach(([x, y], i) =>
-      i === 0 ? tctx.moveTo(x, y) : tctx.lineTo(x, y),
+    transitContext.clearRect(0, 0, transitCanvasW, transitCanvasH);
+    transitContext.strokeStyle = "#14b8a6";
+    transitContext.lineWidth = 1.5;
+    transitContext.beginPath();
+    transitPoints.forEach(([x, y], i) =>
+      i === 0 ? transitContext.moveTo(x, y) : transitContext.lineTo(x, y),
     );
-    tctx.stroke();
-    tctx.fillStyle = "var(--ds-gray-600)";
-    tctx.font = "10px monospace";
-    tctx.fillText("flux", 8, 16);
-    tctx.fillText("time →", W - 52, H - 6);
-    tctx.fillStyle = "#14b8a6";
-    tctx.fillText(
+    transitContext.stroke();
+    transitContext.fillStyle = "var(--ds-gray-600)";
+    transitContext.font = "10px monospace";
+    transitContext.fillText("flux", 8, 16);
+    transitContext.fillText("time →", transitCanvasW - 52, transitCanvasH - 6);
+    transitContext.fillStyle = "#14b8a6";
+    transitContext.fillText(
       `−${((planetRadius ** 2 / 100) * 100).toFixed(2)}%`,
-      W - 52,
+      transitCanvasW - 52,
       36,
     );
-    const px = (frame / 120) * W;
-    const py = pts[Math.min(Math.floor(px), W - 1)]?.[1] ?? 20;
-    tctx.beginPath();
-    tctx.arc(px, py - 14, 4, 0, Math.PI * 2);
-    tctx.fillStyle = COLORS[planetType]?.[0] ?? "#888";
-    tctx.fill();
+    const px = (frame / 120) * transitCanvasW;
+    const py =
+      transitPoints[Math.min(Math.floor(px), transitCanvasW - 1)]?.[1] ?? 20;
+    transitContext.beginPath();
+    transitContext.arc(px, py - 14, 4, 0, Math.PI * 2);
+    transitContext.fillStyle = COLORS[planetType]?.[0] ?? "#888";
+    transitContext.fill();
     frame = (frame + 1) % 120;
     requestAnimationFrame(animateTransit);
   }
   animateTransit();
 
-  const oc = document.getElementById("orbit-canvas");
-  const octx = oc.getContext("2d");
-  const OW = oc.width,
-    OH = oc.height;
-  const ocx = OW / 2,
-    ocy = OH / 2;
+  const orbitCanvas = document.getElementById("orbit-canvas");
+  const orbitContext = orbitCanvas.getContext("2d");
+  const orbitCanvasW = orbitCanvas.width,
+    orbitCanvasH = orbitCanvas.height;
+  const orbitCanvasX = orbitCanvasW / 2,
+    orbitCanvasY = orbitCanvasH / 2;
 
   const earthOrbitR = 70;
   const planetOrbitR = Math.min(Math.max(earthOrbitR * 0.6, 40), 110);
@@ -496,63 +495,63 @@ const planetType = planet.planet_type ?? "unknown";
     ? `${((25 * earthPeriod) / planetPeriod).toFixed(1)} yrs`
     : "—";
 
-  const [pc1] = COLORS[planetType] ?? COLORS["unknown"];
+  const [planetColor] = COLORS[planetType] ?? COLORS["unknown"];
 
   let earthAngle = 0;
   let planetAngle = 0;
 
   function drawOrbit() {
-    octx.clearRect(0, 0, OW, OH);
+    orbitContext.clearRect(0, 0, orbitCanvasW, orbitCanvasH);
 
-    octx.beginPath();
-    octx.arc(ocx, ocy, 10, 0, Math.PI * 2);
-    octx.fillStyle = "#ffd060";
-    octx.fill();
+    orbitContext.beginPath();
+    orbitContext.arc(orbitCanvasX, orbitCanvasY, 10, 0, Math.PI * 2);
+    orbitContext.fillStyle = "#ffd060";
+    orbitContext.fill();
 
-    octx.beginPath();
-    octx.arc(ocx, ocy, 14, 0, Math.PI * 2);
-    octx.fillStyle = "rgba(255,208,96,0.12)";
-    octx.fill();
+    orbitContext.beginPath();
+    orbitContext.arc(orbitCanvasX, orbitCanvasY, 14, 0, Math.PI * 2);
+    orbitContext.fillStyle = "rgba(255,208,96,0.12)";
+    orbitContext.fill();
 
-    octx.beginPath();
-    octx.arc(ocx, ocy, earthOrbitR, 0, Math.PI * 2);
-    octx.strokeStyle = "rgba(255,255,255,0.08)";
-    octx.lineWidth = 1;
-    octx.stroke();
+    orbitContext.beginPath();
+    orbitContext.arc(orbitCanvasX, orbitCanvasY, earthOrbitR, 0, Math.PI * 2);
+    orbitContext.strokeStyle = "rgba(255,255,255,0.08)";
+    orbitContext.lineWidth = 1;
+    orbitContext.stroke();
 
-    octx.beginPath();
-    octx.arc(ocx, ocy, planetOrbitR, 0, Math.PI * 2);
-    octx.strokeStyle = "rgba(255,255,255,0.08)";
-    octx.lineWidth = 1;
-    octx.stroke();
+    orbitContext.beginPath();
+    orbitContext.arc(orbitCanvasX, orbitCanvasY, planetOrbitR, 0, Math.PI * 2);
+    orbitContext.strokeStyle = "rgba(255,255,255,0.08)";
+    orbitContext.lineWidth = 1;
+    orbitContext.stroke();
 
-    const ex = ocx + earthOrbitR * Math.cos(earthAngle);
-    const ey = ocy + earthOrbitR * Math.sin(earthAngle);
-    octx.beginPath();
-    octx.arc(ex, ey, 5, 0, Math.PI * 2);
-    octx.fillStyle = "#378ADD";
-    octx.fill();
+    const earthX = orbitCanvasX + earthOrbitR * Math.cos(earthAngle);
+    const earthY = orbitCanvasY + earthOrbitR * Math.sin(earthAngle);
+    orbitContext.beginPath();
+    orbitContext.arc(earthX, earthY, 5, 0, Math.PI * 2);
+    orbitContext.fillStyle = "#378ADD";
+    orbitContext.fill();
 
-    octx.fillStyle = "rgba(255,255,255,0.3)";
-    octx.font = "10px monospace";
-    octx.fillText("Earth", ex + 7, ey + 4);
+    orbitContext.fillStyle = "rgba(255,255,255,0.3)";
+    orbitContext.font = "10px monospace";
+    orbitContext.fillText("Earth", earthX + 7, earthY + 4);
 
-    const px2 = ocx + planetOrbitR * Math.cos(planetAngle);
-    const py2 = ocy + planetOrbitR * Math.sin(planetAngle);
-    octx.beginPath();
-    octx.arc(
-      px2,
-      py2,
+    const planetX = orbitCanvasX + planetOrbitR * Math.cos(planetAngle);
+    const planetY = orbitCanvasY + planetOrbitR * Math.sin(planetAngle);
+    orbitContext.beginPath();
+    orbitContext.arc(
+      planetX,
+      planetY,
       Math.min(Math.max(planetRadius * 2.5, 4), 10),
       0,
       Math.PI * 2,
     );
-    octx.fillStyle = pc1;
-    octx.fill();
+    orbitContext.fillStyle = planetColor;
+    orbitContext.fill();
 
-    octx.fillStyle = "rgba(255,255,255,0.5)";
-    octx.font = "10px monospace";
-    octx.fillText(planetName.split(" ")[0], px2 + 8, py2 + 4);
+    orbitContext.fillStyle = "rgba(255,255,255,0.5)";
+    orbitContext.font = "10px monospace";
+    orbitContext.fillText(planetName.split(" ")[0], planetX + 8, planetY + 4);
 
     const baseSpeed = (2 * Math.PI) / 600;
     earthAngle += baseSpeed;
@@ -562,93 +561,96 @@ const planetType = planet.planet_type ?? "unknown";
   }
   drawOrbit();
 
-  function spectralToColor(type, temp) {
-    const t = temp ?? 5778;
+  function spectralToColor(type, temperature) {
+    const temp = temperature ?? 5778;
 
-    if (t > 30000) return ["#9bb0ff", "#b0c0ff"];
-    if (t > 10000) return ["#aabfff", "#c0d0ff"];
-    if (t > 7500) return ["#f8f7ff", "#fffaf0"];
-    if (t > 6000) return ["#fff4e8", "#ffe8d0"];
-    if (t > 5200) return ["#ffdd90", "#ffd060"];
-    if (t > 3700) return ["#ffb347", "#ff8c00"];
+    if (temp > 30000) return ["#9bb0ff", "#b0c0ff"];
+    if (temp > 10000) return ["#aabfff", "#c0d0ff"];
+    if (temp > 7500) return ["#f8f7ff", "#fffaf0"];
+    if (temp > 6000) return ["#fff4e8", "#ffe8d0"];
+    if (temp > 5200) return ["#ffdd90", "#ffd060"];
+    if (temp > 3700) return ["#ffb347", "#ff8c00"];
     return ["#ff6b35", "#cc4400"];
   }
 
-  function tempToSpectralClass(temp) {
-    if (!temp) return null;
-    if (temp > 30000) return "O";
-    if (temp > 10000) return "B";
-    if (temp > 7500) return "A";
-    if (temp > 6000) return "F";
-    if (temp > 5200) return "G";
-    if (temp > 3700) return "K";
+  function tempToSpectralClass(temperature) {
+    if (!temperature) return null;
+    if (temperature > 30000) return "O";
+    if (temperature > 10000) return "B";
+    if (temperature > 7500) return "A";
+    if (temperature > 6000) return "F";
+    if (temperature > 5200) return "G";
+    if (temperature > 3700) return "K";
     return "M";
   }
 
   const displaySpectral =
     stellarType ?? tempToSpectralClass(stellarTemp) ?? "Unknown";
 
-  const sc = document.getElementById("star-canvas");
-  const sctx = sc.getContext("2d");
-  const SW = sc.width,
-    SH = sc.height;
-  const scx = SW / 2,
-    scy = SH / 2;
+  const starCanvas = document.getElementById("star-canvas");
+  const starContext = starCanvas.getContext("2d");
+  const starCanvasW = starCanvas.width,
+    starCanvasH = starCanvas.height;
+  const starContextX = starCanvasW / 2,
+    starContextY = starCanvasH / 2;
 
-  sctx.fillStyle = "rgba(255,255,255,0.5)";
-  sctx.font = "11px monospace";
-  sctx.textAlign = "center";
-  sctx.fillText(displaySpectral, scx, SH - 6);
+  starContext.fillStyle = "rgba(255,255,255,0.5)";
+  starContext.font = "11px monospace";
+  starContext.textAlign = "center";
+  starContext.fillText(displaySpectral, starContextX, starCanvasH - 6);
 
-  const [sc1, sc2] = spectralToColor(
+  const [starColor1, starColor2] = spectralToColor(
     stellarType ?? tempToSpectralClass(stellarTemp),
     stellarTemp,
   );
-  const sr = Math.min(Math.max((stellarRadius ?? 1) * 20, 18), scx - 8);
-
-  const sg = sctx.createRadialGradient(
-    scx - sr * 0.3,
-    scy - sr * 0.3,
-    sr * 0.05,
-    scx,
-    scy,
-    sr,
+  const starRadius = Math.min(
+    Math.max((stellarRadius ?? 1) * 20, 18),
+    starContextX - 8,
   );
-  sg.addColorStop(0, sc1);
-  sg.addColorStop(0.6, sc2);
-  sg.addColorStop(1, sc2 + "44");
 
-  sctx.beginPath();
-  sctx.arc(scx, scy, sr, 0, Math.PI * 2);
-  sctx.fillStyle = sg;
-  sctx.fill();
+  const starGradient = starContext.createRadialGradient(
+    starContextX - starRadius * 0.3,
+    starContextY - starRadius * 0.3,
+    starRadius * 0.05,
+    starContextX,
+    starContextY,
+    starRadius,
+  );
+  starGradient.addColorStop(0, starColor1);
+  starGradient.addColorStop(0.6, starColor2);
+  starGradient.addColorStop(1, starColor2 + "44");
 
-  sctx.beginPath();
-  sctx.arc(scx, scy, sr + 6, 0, Math.PI * 2);
-  sctx.fillStyle = sc2 + "18";
-  sctx.fill();
+  starContext.beginPath();
+  starContext.arc(starContextX, starContextY, starRadius, 0, Math.PI * 2);
+  starContext.fillStyle = starGradient;
+  starContext.fill();
+
+  starContext.beginPath();
+  starContext.arc(starContextX, starContextY, starRadius + 6, 0, Math.PI * 2);
+  starContext.fillStyle = starColor2 + "18";
+  starContext.fill();
 
   const compare = document.getElementById("size-compare");
   const bodies = [
-    { name: "Earth", r: 1, color: "#378ADD" },
+    { name: "Earth", radius: 1, color: "#378ADD" },
     {
       name: planetName.split(" ")[0],
-      r: Math.max(planetRadius, 0.1),
+      radius: Math.max(planetRadius, 0.1),
       color: COLORS[planetType]?.[0] ?? "#888",
     },
-    { name: "Neptune", r: 3.88, color: "#4a8ed4" },
-    { name: "Jupiter", r: 11.2, color: "#E87C1E" },
+    { name: "Neptune", radius: 3.88, color: "#4a8ed4" },
+    { name: "Jupiter", radius: 11.2, color: "#E87C1E" },
   ];
-  const maxR = Math.max(...bodies.map((b) => b.r));
+  const maxR = Math.max(...bodies.map((body) => body.radius));
   const scale = 44 / maxR;
-  bodies.forEach((b) => {
-    const px = Math.max(b.r * scale, 5);
+  bodies.forEach((body) => {
+    const px = Math.max(body.radius * scale, 5);
     const div = document.createElement("div");
     div.style.cssText =
       "display:flex;flex-direction:column;align-items:center;gap:8px";
     div.innerHTML = `
-      <div style="width:${px * 2}px;height:${px * 2}px;border-radius:50%;background:${b.color};opacity:.85;flex-shrink:0"></div>
-      <div style="font-size:10px;color:var(--ds-gray-600);font-family:var(--font-geist-mono);white-space:nowrap">${b.name}</div>
+      <div style="width:${px * 2}px;height:${px * 2}px;border-radius:50%;background:${body.color};opacity:.85;flex-shrink:0"></div>
+      <div style="font-size:10px;color:var(--ds-gray-600);font-family:var(--font-geist-mono);white-space:nowrap">${body.name}</div>
     `;
     compare.appendChild(div);
   });

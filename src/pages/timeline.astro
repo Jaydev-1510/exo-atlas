@@ -184,20 +184,20 @@ const methodColors: Record<string, string> = {
       </div>
       <div class="space-y-3">
         {
-          methods.map((m) => {
+          methods.map((method) => {
             const count = (rows as Row[]).filter(
-              (r) => r.discovery_method === m,
+              (r) => r.discovery_method === method,
             ).length;
             const pct = Math.round((count / (rows?.length ?? 1)) * 100);
             return (
               <div class="flex items-center gap-3">
                 <div class="w-28 text-xs text-gray-600 hover:text-primary transition-color duration-300 capitalize shrink-0">
-                  {m.replace("-", " ")}
+                  {method.replace("-", " ")}
                 </div>
                 <div class="flex-1 h-1.5 bg-gray-300 rounded-full overflow-hidden">
                   <div
                     class="h-full rounded-full"
-                    style={`width:${pct}%;background:${methodColors[m]}`}
+                    style={`width:${pct}%;background:${methodColors[method]}`}
                   />
                 </div>
                 <div class="font-mono text-xs text-gray-600 w-16 text-right">
@@ -215,21 +215,20 @@ const methodColors: Record<string, string> = {
 <script is:inline define:vars={{ totalByYear, byYear, years, methodColors }}>
   const canvas = document.getElementById("bar-chart");
   canvas.width = canvas.offsetWidth || 800;
-  const W = canvas.width,
-    H = canvas.height;
-  const ctx = canvas.getContext("2d");
+  const canvasWidth = canvas.width,
+    canvasHeight = canvas.height;
+  const context = canvas.getContext("2d");
   const hoverLabel = document.getElementById("hover-label");
   const methodDesc = {
     transit: "Planet passes in front, causing a measurable dip in starlight.",
     "radial-velocity":
       "Star’s motion shifts due to gravitational pull of a planet.",
-      "direct-imaging": "Planet observed directly by suppressing starlight.",
+    "direct-imaging": "Planet observed directly by suppressing starlight.",
     microlensing:
       "Gravity of a system bends and magnifies background starlight.",
-      astrometry: "Precise tracking of a star’s positional wobble on the sky.",
-      timing: "Regular signals vary due to gravitational influence of a planet.",
+    astrometry: "Precise tracking of a star’s positional wobble on the sky.",
+    timing: "Regular signals vary due to gravitational influence of a planet.",
   };
-  const descBox = document.getElementById("method-dec");
 
   let activeMethod = "";
   totalByYear.sort((a, b) => a.year - b.year);
@@ -237,33 +236,33 @@ const methodColors: Record<string, string> = {
 
   function getFilteredData(method) {
     if (!method) return totalByYear;
-    return years.map((y) => ({
-      year: y,
-      count: (byYear[y] || []).filter((r) => r.discovery_method === method)
+    return years.map((year) => ({
+      year: year,
+      count: (byYear[year] || []).filter((r) => r.discovery_method === method)
         .length,
     }));
   }
 
   function drawChart(data, highlightYear = null) {
-    ctx.clearRect(0, 0, W, H);
+    context.clearRect(0, 0, canvasWidth, canvasHeight);
     const max = Math.max(...data.map((d) => d.count), 1);
-    const barW = (W / data.length) * 0.7;
-    const gap = (W / data.length) * 0.3;
+    const barWidth = (canvasWidth / data.length) * 0.7;
+    const barGap = (canvasWidth / data.length) * 0.3;
 
     data.forEach((d, i) => {
-      const bh = (d.count / max) * (H - 20);
-      const bx = i * (W / data.length) + gap / 2;
-      const by = H - bh - 10;
-      const col = methodColors[activeMethod] || "var(--ds-blue-500)";
+      const barHeight = (d.count / max) * (canvasHeight - 20);
+      const barX = i * (canvasWidth / data.length) + barGap / 2;
+      const barY = canvasHeight - barHeight - 10;
+      const color = methodColors[activeMethod] || "var(--ds-blue-500)";
       const isHighlight = d.year === highlightYear;
 
-      ctx.fillStyle = isHighlight
-        ? col
+      context.fillStyle = isHighlight
+        ? color
         : d.count > 0
-          ? col.replace(")", ",0.5)").replace("var(", "var(")
+          ? color.replace(")", ",0.5)").replace("var(", "var(")
           : "rgba(255,255,255,0.05)";
 
-      ctx.fillStyle = isHighlight
+      context.fillStyle = isHighlight
         ? activeMethod
           ? getComputedStyle(document.documentElement).getPropertyValue(
               "--ds-blue-500",
@@ -283,23 +282,24 @@ const methodColors: Record<string, string> = {
           timing: isHighlight ? "#388e4a75" : "#388e4a",
           other: isHighlight ? "#7d7d7d75" : "#7d7d7d",
         };
-        ctx.fillStyle =
+        context.fillStyle =
           colors[activeMethod] ??
           (isHighlight ? "#3b82f6" : "rgba(59,130,246,0.45)");
       }
 
-      ctx.beginPath();
-      ctx.roundRect(bx, by, barW, bh, 2);
-      ctx.fill();
+      context.beginPath();
+      context.roundRect(barX, barY, barWidth, barHeight, 2);
+      context.fill();
     });
   }
   drawChart(chartData);
 
   canvas.addEventListener("mousemove", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (W / rect.width);
-    const idx = Math.floor(mx / (W / chartData.length));
-    const d = chartData[idx];
+    const canvasRect = canvas.getBoundingClientRect();
+    const mouseX =
+      (e.clientX - canvasRect.left) * (canvasWidth / canvasRect.width);
+    const barIndex = Math.floor(mouseX / (canvasWidth / chartData.length));
+    const d = chartData[barIndex];
     if (d) {
       hoverLabel.textContent = `${d.year}: ${d.count} planets`;
       drawChart(chartData, d.year);
@@ -312,10 +312,11 @@ const methodColors: Record<string, string> = {
   });
 
   canvas.addEventListener("click", (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = (e.clientX - rect.left) * (W / rect.width);
-    const idx = Math.floor(mx / (W / chartData.length));
-    const d = chartData[idx];
+    const cavasRect = canvas.getBoundingClientRect();
+    const mouseX =
+      (e.clientX - cavasRect.left) * (canvasWidth / cavasRect.width);
+    const barIndex = Math.floor(mouseX / (canvasWidth / chartData.length));
+    const d = chartData[barIndex];
     if (!d || !d.count) return;
 
     const panel = document.getElementById("year-detail");
