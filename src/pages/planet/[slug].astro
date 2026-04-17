@@ -55,6 +55,11 @@ const habColor =
       : "var(--ds-red-500)";
 
 const planetType = planet.planet_type ?? "unknown";
+
+const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
+  p_planet_id: planet.id,
+  p_limit: 4,
+});
 ---
 
 <Layout title={`${planet.name} — Exoplanet Atlas`}>
@@ -343,6 +348,50 @@ const planetType = planet.planet_type ?? "unknown";
         </div>
       </div>
     </div>
+    {
+      similarPlanets && similarPlanets.length > 0 && (
+        <div class="mt-8">
+          <div class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4">
+            Planets like this
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {similarPlanets.map((planet) => {
+              const slug = planet.name.toLowerCase().replace(/\s+/g, "-");
+              const habColor =
+                (planet.habitability_pct ?? 0) >= 70
+                  ? "var(--ds-green-600)"
+                  : (planet.habitability_pct ?? 0) >= 40
+                    ? "var(--ds-amber-600)"
+                    : "var(--ds-red-600)";
+              return (
+                <a
+                  href={`/planet/${slug}`}
+                  class="bg-background-200 border border-gray-300 rounded-xl p-3 hover:border-gray-500 transition-colors block"
+                >
+                  <div class="text-xs font-medium text-gray-1000 mb-1 truncate">
+                    {planet.name}
+                  </div>
+                  <div class="font-mono text-xs text-gray-600 mb-2 truncate">
+                    {planet.host_star}
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <div class="flex-1 h-1 bg-gray-300 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full"
+                        style={`width:${planet.habitability_pct ?? 0}%;background:${habColor}`}
+                      />
+                    </div>
+                    <span class="font-mono text-xs text-gray-600">
+                      {planet.habitability_pct ?? 0}%
+                    </span>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </div>
+      )
+    }
   </section>
 </Layout>
 
