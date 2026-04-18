@@ -3,6 +3,8 @@ import Layout from "@/layouts/base.astro";
 import PlanetCard from "@/components/planetCard.astro";
 import { supabase } from "@/lib/supabase";
 
+export const prerender = false;
+
 const searchParams = Astro.url.searchParams;
 const q = searchParams.get("q") || "";
 const type = searchParams.get("type") || "";

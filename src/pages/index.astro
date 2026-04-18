@@ -4,6 +4,8 @@ import PlanetCard from "@/components/planetCard.astro";
 import Icon from "@/components/icons.astro";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 
+export const prerender = true;
+
 const [
   { data: featured },
   { count: total, data: stats },
@@ -78,16 +80,16 @@ const latestYear = Math.max(
     >
       {
         [
-          { n: total?.toLocaleString(), l: "Confirmed worlds" },
-          { n: habitable?.toLocaleString(), l: "Habitable zone" },
-          { n: latestYear.toString(), l: "Latest discovery" },
-        ].map((s, i) => (
+          { num: total?.toLocaleString(), label: "Confirmed worlds" },
+          { num: habitable?.toLocaleString(), label: "Habitable zone" },
+          { num: latestYear.toString(), label: "Latest discovery" },
+        ].map((content, i) => (
           <div
             class={`px-6 py-5 text-center "bg-background-100 hover:bg-background-200 transition-all duration-300 ${i < 2 ? "border-r border-gray-300" : ""}`}
           >
-            <div class="font-mono text-2xl text-primary mb-1">{s.n}</div>
+            <div class="font-mono text-2xl text-primary mb-1">{content.num}</div>
             <div class="text-xs text-secondary uppercase tracking-widest">
-              {s.l}
+              {content.label}
             </div>
           </div>
         ))
@@ -104,7 +106,7 @@ const latestYear = Math.max(
       </h2>
       <a
         href="/atlas"
-        class="group text-sm text-secondary hover:text-primary transition-colors flex items-center gap-1"
+        class="group text-sm text-secondary hover:text-primary transition-colors flex items-center gap-1 duration-200"
         >View all <Icon
           glyph="arrow-right"
           class="h-full w-auto group-hover:translate-x-2 group-hover:scale-110 transition-all duration-300"

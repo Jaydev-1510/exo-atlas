@@ -3,6 +3,8 @@ import Layout from "@/layouts/base.astro";
 import Icon from "@/components/icons.astro";
 import { supabaseAdmin } from "@/lib/supabase";
 
+export const prerender = true;
+
 const pageSize = 1000;
 let from = 0;
 let rows = [];
