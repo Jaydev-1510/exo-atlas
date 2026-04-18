@@ -301,5 +301,9 @@ export default defineConfig({
       },
     },
   },
-  adapter: vercel(),
+  adapter: vercel({
+    isr: {
+      expiration: 60 * 60 * 24,
+    },
+  }),
 });
