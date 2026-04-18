@@ -1,0 +1,112 @@
+---
+import Layout from "@/layouts/base.astro";
+import Icon from "@/components/icons.astro";
+---
+
+<Layout title="Saved planets — Exoplanet Atlas">
+  <section class="max-w-4xl mx-auto px-4 py-10">
+    <div class="flex items-baseline justify-between mb-8">
+      <h1 class="text-heading-32 text-primary">Saved planets</h1>
+      <span id="saved-count" class="font-mono text-xs text-gray-600"></span>
+    </div>
+    <div
+      id="empty-state"
+      style="display:none"
+      class="items-center justify-center py-10 border border-dashed bg-background-200 border-white/10 rounded-lg"
+    >
+      <p
+        class="text-sm text-center tracking-widest uppercase text-gray-500 mb-4"
+      >
+        No saved planets yet.
+      </p>
+      <div class="flex items-center justify-center">
+        <a
+          href="/atlas"
+          class="group text-sm text-secondary flex gap-1 items-center text-center underline hover:text-gray-1000 transition-colors duration-300"
+          >Browse the atlas <Icon
+            glyph="arrow-right"
+            class="h-full w-auto group-hover:translate-x-2 group-hover:scale-110 transition-all duration-300"
+          /></a
+        >
+      </div>
+    </div>
+
+    <div
+      id="bookmarks-grid"
+      class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"
+    >
+    </div>
+  </section>
+</Layout>
+
+<script>
+  function getBookmarks() {
+    try {
+      return JSON.parse(localStorage.getItem("exoatlas:bookmarks") ?? "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  const grid = document.getElementById("bookmarks-grid")!;
+  const empty = document.getElementById("empty-state")!;
+  const countEl = document.getElementById("saved-count")!;
+  const bookmarks = getBookmarks();
+
+  countEl.textContent = `${bookmarks.length} saved`;
+
+  if (!bookmarks.length) {
+    empty.style.display = "block";
+  } else {
+    bookmarks.forEach((planet) => {
+      const habColor =
+        (planet.habitability_pct ?? 0) >= 70
+          ? "var(--ds-green-600)"
+          : (planet.habitability_pct ?? 0) >= 40
+            ? "var(--ds-amber-600)"
+            : "var(--ds-red-600)";
+      const slug = planet.name.toLowerCase().replace(/\s+/g, "-");
+
+      const card = document.createElement("div");
+      card.className = "bookmark-card";
+      card.style.cssText =
+        "background:var(--ds-background-200);border:0.5px solid var(--ds-gray-300);border-radius:12px;padding:1rem;position:relative";
+      card.innerHTML = `
+      <a href="/planet/${slug}" style="display:block;text-decoration:none;margin-bottom:12px">
+        <div style="font-size:.875rem;font-weight:500;color:var(--ds-gray-1000);margin-bottom:2px">${planet.name}</div>
+        <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--ds-gray-600)">${planet.host_star}</div>
+      </a>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+        <div style="flex:1;height:3px;background:var(--ds-gray-300);border-radius:2px;overflow:hidden">
+          <div style="width:${planet.habitability_pct ?? 0}%;height:100%;border-radius:2px;background:${habColor}"></div>
+        </div>
+        <span style="font-family:var(--font-geist-mono);font-size:.625rem;color:var(--ds-gray-600)">${planet.habitability_pct ?? 0}%</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span style="font-family:var(--font-geist-mono);font-size:.625rem;color:var(--ds-gray-500)">
+          ${new Date(planet.savedAt).toLocaleDateString()}
+        </span>
+        <button
+          id="${planet.id}"
+          class="remove-btn"
+          style="font-size:.625rem;color:var(--ds-gray-600);border:0.5px solid var(--ds-gray-300);border-radius:6px;padding:2px 8px;background:none;cursor:pointer"
+        >
+          Remove
+        </button>
+      </div>
+    `;
+      grid.appendChild(card);
+    });
+
+    document.querySelectorAll(".remove-btn").forEach((btn) => {
+      btn?.addEventListener("click", () => {
+        const id = btn.id;
+        const list = getBookmarks().filter((bm) => bm.id !== id);
+        localStorage.setItem("exoatlas:bookmarks", JSON.stringify(list));
+        btn.closest(".bookmark-card")?.remove();
+        countEl.textContent = `${list.length} saved`;
+        if (!list.length) empty.style.display = "block";
+      });
+    });
+  }
+</script>

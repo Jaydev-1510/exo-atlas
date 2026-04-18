@@ -64,15 +64,35 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
 
 <Layout title={`${planet.name} — Exoplanet Atlas`}>
   <section class="max-w-4xl mx-auto px-4 py-10">
-    <div class="mb-8">
-      <a
-        href="/atlas"
-        class="text-md text-gray-600 hover:text-secondary transition-colors flex gap-1 items-center group"
-        ><Icon
-          glyph="arrow-left"
-          class="group-hover:-translate-x-2 group-hover:scale-110 transition-all duration-300"
-        />Atlas</a
-      >
+    <div class="mb-8 flex items-baseline justify-between">
+      <div>
+        <a
+          href="/atlas"
+          class="text-md text-gray-600 hover:text-secondary transition-colors flex gap-1 items-center group"
+          ><Icon
+            glyph="arrow-left"
+            class="group-hover:-translate-x-2 group-hover:scale-110 transition-all duration-300"
+          />Atlas</a
+        >
+      </div>
+      <div class="flex items-center gap-3 mt-4">
+        <button
+          id="bookmark-btn"
+          data-planet={JSON.stringify({
+            id: planet.id,
+            name: planet.name,
+            host_star: planet.host_star,
+            planet_type: planet.planet_type,
+            habitability_pct: planet.habitability_pct,
+            radius_earth: planet.radius_earth,
+            discovery_year: planet.discovery_year,
+          })}
+          class="flex items-center gap-2 text-xs border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-500 transition-colors"
+        >
+          <Icon id="bookmark-icon" glyph="bookmark" />
+          <span id="bookmark-label">Save planet</span>
+        </button>
+      </div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
       <div
@@ -720,4 +740,50 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
 
   slider.addEventListener("input", updateGravity);
   updateGravity();
+
+  const bmBtn = document.getElementById("bookmark-btn");
+  const bmIcon = document.getElementById("bookmark-icon");
+  const bmLabel = document.getElementById("bookmark-label");
+
+  function updateBookmarkUI(saved) {
+    if (saved) {
+      bmBtn.style.borderColor = "var(--ds-green-500)";
+      bmBtn.style.color = "var(--ds-green-600)";
+      bmIcon.setAttribute("fill", "currentColor");
+      bmLabel.textContent = "Saved";
+    } else {
+      bmBtn.style.borderColor = "";
+      bmBtn.style.color = "";
+      bmIcon.setAttribute("fill", "none");
+      bmLabel.textContent = "Save planet";
+    }
+  }
+
+  function getBookmarks() {
+    try {
+      return JSON.parse(localStorage.getItem("exoatlas:bookmarks") ?? "[]");
+    } catch {
+      return [];
+    }
+  }
+
+  const planetData = JSON.parse(bmBtn.dataset.planet);
+
+  updateBookmarkUI(getBookmarks().some((b) => b.id === planetData.id));
+
+  bmBtn.addEventListener("click", () => {
+    const list = getBookmarks();
+    const already = list.some((bm) => bm.id === planetData.id);
+    if (already) {
+      localStorage.setItem(
+        "exoatlas:bookmarks",
+        JSON.stringify(list.filter((bm) => bm.id !== planetData.id)),
+      );
+      updateBookmarkUI(false);
+    } else {
+      list.unshift({ ...planetData, savedAt: new Date().toISOString() });
+      localStorage.setItem("exoatlas:bookmarks", JSON.stringify(list));
+      updateBookmarkUI(true);
+    }
+  });
 </script>
