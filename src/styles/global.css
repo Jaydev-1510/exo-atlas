@@ -301,7 +301,18 @@
 * {
   box-sizing: border-box;
 }
+
 *::selection {
   color: black;
-  background-color: var(--ds-gray-1000);
+  background-color: var(--primary);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
 }
