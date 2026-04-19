@@ -64,20 +64,23 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
 
 <Layout title={`${planet.name} — Exoplanet Atlas`}>
   <section class="max-w-4xl mx-auto px-4 py-10">
-    <div class="mb-8 flex items-baseline justify-between">
-      <div>
+    <header class="mb-8 flex items-baseline justify-between">
+      <nav aria-label="Breadcrumb">
         <a
           href="/atlas"
+          rel="up"
           class="text-md text-gray-600 hover:text-secondary transition-colors flex gap-1 items-center group"
           ><Icon
             glyph="arrow-left"
             class="group-hover:-translate-x-2 group-hover:scale-110 transition-all duration-300"
           />Atlas</a
         >
-      </div>
+      </nav>
       <div class="flex items-center gap-3 mt-4">
         <button
           id="bookmark-btn"
+          type="button"
+          aria-label="Save planet to local collection"
           data-planet={JSON.stringify({
             id: planet.id,
             name: planet.name,
@@ -93,22 +96,30 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <span id="bookmark-label">Save planet</span>
         </button>
       </div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-      <div
+    </header>
+
+    <article
+      class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10"
+      itemscope
+      itemtype="https://schema.org/Planet"
+    >
+      <figure
         class="bg-background-200 border border-gray-300 rounded-xl flex items-center justify-center h-full"
       >
         <canvas
           id="planet-canvas"
+          role="img"
+          aria-label={`Visual representation of ${planet.name}`}
           width="200"
           height="200"
           data-type={planetType}
           data-radius={planet.radius_earth ?? 1}></canvas>
-      </div>
+        <figcaption class="sr-only">Visual of {planet.name}</figcaption>
+      </figure>
 
       <div class="flex flex-col justify-center">
         <div class="flex items-center justify-between gap-3 mb-2">
-          <h1 class="font-medium text-primary text-heading-48">
+          <h1 class="font-medium text-primary text-heading-48" itemprop="name">
             {planet.name}
           </h1>
           <span
@@ -117,7 +128,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
             {typeLabels[planetType]}
           </span>
         </div>
-        <p class="font-mono text-sm text-gray-600 mb-6">
+        <p class="font-mono text-sm text-gray-600 mb-6" itemprop="description">
           {planet.host_star}
           {
             planet.distance_ly && (
@@ -141,10 +152,10 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <dl class="grid grid-cols-2 gap-3">
           {
             [
-              { label: "Radius", value: `${fmt(planet.radius_earth)} R⊕` },
+              { label: "Radius", value: `${fmt(planet.radius_earth)}⊕` },
               { label: "Mass", value: `${fmt(planet.mass_earth)} M⊕` },
               { label: "Period", value: period },
               {
@@ -158,32 +169,34 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
               },
             ].map((m) => (
               <div class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5">
-                <div class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]">
+                <dt class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]">
                   {m.label}
-                </div>
-                <div class="font-mono text-sm text-primary">{m.value}</div>
+                </dt>
+                <dd class="font-mono text-sm text-primary">{m.value}</dd>
               </div>
             ))
           }
-        </div>
+        </dl>
       </div>
-    </div>
+    </article>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-      <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
-        <div
+      <section class="bg-background-200 border border-gray-300 rounded-xl p-5">
+        <h2
           class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
         >
-          Transit light curve
-        </div>
+          Transit Light Curve
+        </h2>
         <canvas
           id="transit-canvas"
+          role="img"
+          aria-label="Transit light curve simulation"
           width="100%"
           height="90"
           style="width:100%;height:90px"></canvas>
-      </div>
+      </section>
 
-      <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+      <section class="bg-background-200 border border-gray-300 rounded-xl p-5">
         <div
           class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
         >
@@ -191,17 +204,23 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
         </div>
         <div id="size-compare" class="flex items-end justify-center gap-6 py-2">
         </div>
-      </div>
+      </section>
     </div>
 
-    <SkyMap ra={planet.ra} dec={planet.dec} name={planet.name} />
+    <SkyMap
+      rightAscension={planet.ra}
+      declination={planet.dec}
+      name={planet.name}
+    />
 
-    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
-      <div
+    <section
+      class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
+    >
+      <h2
         class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
       >
         Could I live here?
-      </div>
+      </h2>
       <div class="flex items-center gap-4 mb-4">
         <label class="text-sm text-gray-700 min-w-24">Your weight</label>
         <input
@@ -220,38 +239,40 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
       </div>
       <div class="grid grid-cols-3 gap-3">
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
-          <div
+          <h3
             class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
           >
             Weight here
-          </div>
+          </h3>
           <div id="res-weight" class="font-mono text-sm text-primary">— kg</div>
         </div>
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
-          <div
+          <h3
             class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
           >
             Year length
-          </div>
+          </h3>
           <div class="font-mono text-sm text-primary">{period}</div>
         </div>
         <div class="bg-background-100 border border-gray-200 rounded-lg p-3">
-          <div
+          <h3
             class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
           >
             Surface gravity
-          </div>
+          </h3>
           <div id="res-gravity" class="font-mono text-sm text-primary">— g</div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
-      <div
+    <section
+      class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
+    >
+      <h2
         class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
       >
         Orbital period
-      </div>
+      </h2>
       <div class="flex md:flex-row flex-col items-center justify-between gap-5">
         <div
           class="flex md:flex-col flex-row justify-between md:gap-4 h-full min-w-64"
@@ -259,11 +280,11 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
           >
-            <div
+            <h3
               class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
             >
               1 orbit takes
-            </div>
+            </h3>
             <div id="orbit-period-label" class="font-mono text-sm text-primary">
               {period}
             </div>
@@ -271,11 +292,11 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
           >
-            <div
+            <h3
               class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
             >
               Speed vs Earth
-            </div>
+            </h3>
             <div id="orbit-speed-label" class="font-mono text-sm text-primary">
               —
             </div>
@@ -283,40 +304,53 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-4 py-3 h-16"
           >
-            <div
+            <h3
               class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
             >
               Your age there
-            </div>
+            </h3>
             <div id="orbit-age-label" class="font-mono text-sm text-primary">
               —
             </div>
           </div>
         </div>
         <div class="w-full flex items-center justify-center">
-          <canvas id="orbit-canvas" width="260" height="224"></canvas>
+          <canvas
+            id="orbit-canvas"
+            role="img"
+            aria-label="Orbital period animation"
+            width="260"
+            height="224"></canvas>
         </div>
       </div>
-    </div>
-    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
-      <div
+    </section>
+
+    <section
+      class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
+    >
+      <h2
         class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
       >
         Host star
-      </div>
+      </h2>
       <div class="flex items-center justify-between">
         <div class="w-full flex items-center justify-center">
-          <canvas id="star-canvas" width="120" height="120"></canvas>
+          <canvas
+            id="star-canvas"
+            role="img"
+            aria-label={`Host star ${planet.host_star} visualization`}
+            width="120"
+            height="120"></canvas>
         </div>
         <div class="grid grid-cols-2 gap-3 flex-1 min-w-135">
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
           >
-            <div
+            <h3
               class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
             >
               Spectral type
-            </div>
+            </h3>
             <div class="font-mono text-sm text-primary">
               {planet.stellar_type ?? "—"}
             </div>
@@ -324,11 +358,11 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
           >
-            <div
+            <h3
               class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
             >
               Temperature
-            </div>
+            </h3>
             <div class="font-mono text-sm text-primary">
               {
                 planet.stellar_temp
@@ -340,11 +374,11 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <div
             class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
           >
-            <div
+            <h3
               class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]"
             >
               Star radius
-            </div>
+            </h3>
             <div class="font-mono text-sm text-primary">
               {
                 planet.stellar_radius
@@ -367,10 +401,10 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           </div>
         </div>
       </div>
-    </div>
+    </section>
     {
       similarPlanets && similarPlanets.length > 0 && (
-        <div class="mt-8">
+        <div class="my-8">
           <div class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4">
             Planets like this
           </div>
@@ -412,6 +446,57 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
         </div>
       )
     }
+
+    <aside
+      class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
+      id="ai-summary-panel"
+    >
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-mono text-xs text-gray-600 uppercase tracking-widest">
+          AI overview
+        </h2>
+        <div id="ai-summary-loading" class="flex items-center gap-2">
+          <div class="w-2.5 h-2.5 rounded-full bg-green-600 animate-pulse">
+          </div>
+          <span class="font-mono text-xs text-gray-500">Generating...</span>
+        </div>
+      </div>
+      <p
+        id="ai-summary-text"
+        class="text-sm text-gray-700 leading-relaxed"
+        style="display:none"
+      >
+      </p>
+    </aside>
+
+    <aside class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
+      <h2
+        class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4"
+      >
+        What if I lived there?
+      </h2>
+      <div id="ai-narrative-loading" class="flex items-center gap-2">
+        <div
+          class="w-2.5 h-2.5 rounded-full bg-purple-800 animate-pulse"
+          style="width:6px;height:6px;border-radius:50%;background:var(--ds-purple-500);animation:pulse 1.5s infinite"
+        >
+        </div>
+        <span class="font-mono text-xs text-gray-500"
+          >Writing your story...</span
+        >
+      </div>
+      <p
+        id="ai-narrative-text"
+        class="text-sm text-gray-700 leading-relaxed"
+        style="display:none"
+      >
+      </p>
+      <div
+        class="font-mono text-xs text-right text-gray-600 tracking-widest flex items-center gap-2 justify-end mt-2"
+      >
+        <Icon glyph="warning" class="h-3 w-auto" /> AI generated
+      </div>
+    </aside>
   </section>
 </Layout>
 
@@ -427,6 +512,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     stellarType: planet.stellar_type ?? null,
     stellarTemp: planet.stellar_temp ?? null,
     stellarRadius: planet.stellar_radius ?? 1,
+    planetId: planet.id,
   }}
 >
   const COLORS = {
@@ -786,4 +872,36 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
       updateBookmarkUI(true);
     }
   });
+
+  async function loadAISummary() {
+    try {
+      const response = await fetch(`/api/ai/summary?id=${planetId}`);
+      const json = await response.json();
+      if (json.summary) {
+        document.getElementById("ai-summary-loading").style.display = "none";
+        const summaryElement = document.getElementById("ai-summary-text");
+        summaryElement.style.display = "block";
+        summaryElement.textContent = json.summary;
+      }
+    } catch {
+      document.getElementById("ai-summary-loading").style.display = "none";
+    }
+  }
+
+  async function loadAINarrative() {
+    try {
+      const response = await fetch(`/api/ai/narrative?id=${planetId}`);
+      const json = await response.json();
+      if (json.narrative) {
+        document.getElementById("ai-narrative-loading").style.display = "none";
+        const narrativeElement = document.getElementById("ai-narrative-text");
+        narrativeElement.style.display = "block";
+        narrativeElement.textContent = json.narrative;
+      }
+    } catch {
+      document.getElementById("ai-narrative-loading").style.display = "none";
+    }
+  }
+  loadAISummary();
+  loadAINarrative();
 </script>
