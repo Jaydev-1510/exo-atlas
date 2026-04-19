@@ -228,6 +228,7 @@ export default defineConfig({
         variants: [
           {
             src: ["./src/assets/fonts/geist-pixel/geist-pixel-circle.woff2"],
+            weight: "400",
             style: "normal",
           },
         ],
@@ -242,6 +243,7 @@ export default defineConfig({
         variants: [
           {
             src: ["./src/assets/fonts/geist-pixel/geist-pixel-grid.woff2"],
+            weight: "400",
             style: "normal",
           },
         ],
