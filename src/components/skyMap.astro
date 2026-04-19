@@ -1,19 +1,19 @@
 ---
 interface Props {
-  ra: number | null;
-  dec: number | null;
+  rightAscension: number | null;
+  declination: number | null;
   name: string;
 }
 
-const { ra, dec, name } = Astro.props;
+const { rightAscension, declination, name } = Astro.props;
 ---
 
-<div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
-  <div class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4">
+<section class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
+  <h2 class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4">
     Sky map — where to find it
-  </div>
+  </h2>
   {
-    ra != null && dec != null ? (
+    rightAscension != null && declination != null ? (
       <div class="relative">
         <canvas
           id="sky-canvas"
@@ -32,44 +32,48 @@ const { ra, dec, name } = Astro.props;
       </div>
     )
   }
-</div>
+</section>
 
-<script is:inline define:vars={{ ra, dec, starName: name }}>
-  if (ra != null && dec != null) {
+<script is:inline define:vars={{ rightAscension, declination, starName: name }}>
+  if (rightAscension != null && declination != null) {
     const canvas = document.getElementById("sky-canvas");
     canvas.width = canvas.offsetWidth || 600;
-    const W = canvas.width,
-      H = canvas.height;
-    const ctx = canvas.getContext("2d");
+    const canvasWidth = canvas.width,
+      canvasHeight = canvas.height;
+    const context = canvas.getContext("2d");
 
-    ctx.fillStyle = "#000000";
-    ctx.fillRect(0, 0, W, H);
+    context.fillStyle = "#000000";
+    context.fillRect(0, 0, canvasWidth, canvasHeight);
 
-    ctx.strokeStyle = "rgba(255,255,255,0.04)";
-    ctx.lineWidth = 0.5;
+    context.strokeStyle = "rgba(255,255,255,0.04)";
+    context.lineWidth = 0.5;
     for (let r = 0; r <= 360; r += 30) {
-      const x = (r / 360) * W;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, H);
-      ctx.stroke();
+      const x = (r / 360) * canvasWidth;
+      context.beginPath();
+      context.moveTo(x, 0);
+      context.lineTo(x, canvasHeight);
+      context.stroke();
     }
 
     for (let d = -90; d <= 90; d += 30) {
-      const y = ((90 - d) / 180) * H;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(W, y);
-      ctx.stroke();
+      const y = ((90 - d) / 180) * canvasHeight;
+      context.beginPath();
+      context.moveTo(0, y);
+      context.lineTo(canvasWidth, y);
+      context.stroke();
     }
 
-    ctx.fillStyle = "rgba(255,255,255,0.2)";
-    ctx.font = "9px monospace";
+    context.fillStyle = "rgba(255,255,255,0.2)";
+    context.font = "9px monospace";
     for (let r = 0; r <= 360; r += 60) {
-      ctx.fillText(`${r}°`, (r / 360) * W + 2, H - 4);
+      context.fillText(`${r}°`, (r / 360) * canvasWidth + 2, canvasHeight - 4);
     }
     for (let d = -60; d <= 90; d += 30) {
-      ctx.fillText(`${d > 0 ? "+" : ""}${d}°`, 2, ((90 - d) / 180) * H - 2);
+      context.fillText(
+        `${d > 0 ? "+" : ""}${d}°`,
+        2,
+        ((90 - d) / 180) * canvasHeight - 2,
+      );
     }
 
     const seed = 42;
@@ -77,75 +81,82 @@ const { ra, dec, name } = Astro.props;
       return (((Math.sin(n * seed) * 43758.5453) % 1) + 1) % 1;
     }
     for (let i = 0; i < 400; i++) {
-      const sx = rand(i * 3) * W;
-      const sy = rand(i * 3 + 1) * H;
+      const sx = rand(i * 3) * canvasWidth;
+      const sy = rand(i * 3 + 1) * canvasHeight;
       const size = rand(i * 3 + 2) * 1.2;
-      ctx.beginPath();
-      ctx.arc(sx, sy, size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,255,255,${0.1 + rand(i) * 0.5})`;
-      ctx.fill();
+      context.beginPath();
+      context.arc(sx, sy, size, 0, Math.PI * 2);
+      context.fillStyle = `rgba(255,255,255,${0.1 + rand(i) * 0.5})`;
+      context.fill();
     }
 
     const neighbors = [
-      { ra: ra + 8, dec: dec + 5 },
-      { ra: ra - 12, dec: dec - 8 },
-      { ra: ra + 20, dec: dec + 2 },
-      { ra: ra - 5, dec: dec + 14 },
-      { ra: ra + 15, dec: dec - 10 },
+      { rightAscension: rightAscension + 8, declination: declination + 5 },
+      { rightAscension: rightAscension - 12, declination: declination - 8 },
+      { rightAscension: rightAscension + 20, declination: declination + 2 },
+      { rightAscension: rightAscension - 5, declination: declination + 14 },
+      { rightAscension: rightAscension + 15, declination: declination - 10 },
     ];
-    neighbors.forEach((n) => {
-      const nx = ((((n.ra % 360) + 360) % 360) / 360) * W;
-      const ny = ((90 - Math.max(-90, Math.min(90, n.dec))) / 180) * H;
-      ctx.beginPath();
-      ctx.arc(nx, ny, 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
-      ctx.fill();
+    neighbors.forEach((neighbor) => {
+      const nx =
+        ((((neighbor.rightAscension % 360) + 360) % 360) / 360) * canvasWidth;
+      const ny =
+        ((90 - Math.max(-90, Math.min(90, neighbor.declination))) / 180) *
+        canvasHeight;
+      context.beginPath();
+      context.arc(nx, ny, 1.5, 0, Math.PI * 2);
+      context.fillStyle = "rgba(255,255,255,0.4)";
+      context.fill();
 
-      const hx = ((((ra % 360) + 360) % 360) / 360) * W;
-      const hy = ((90 - dec) / 180) * H;
-      ctx.beginPath();
-      ctx.moveTo(nx, ny);
-      ctx.lineTo(hx, hy);
-      ctx.strokeStyle = "rgba(255,255,255,0.04)";
-      ctx.lineWidth = 0.5;
-      ctx.stroke();
+      const hx = ((((rightAscension % 360) + 360) % 360) / 360) * canvasWidth;
+      const hy = ((90 - declination) / 180) * canvasHeight;
+      context.beginPath();
+      context.moveTo(nx, ny);
+      context.lineTo(hx, hy);
+      context.strokeStyle = "rgba(255,255,255,0.04)";
+      context.lineWidth = 0.5;
+      context.stroke();
     });
 
-    const hx = ((((ra % 360) + 360) % 360) / 360) * W;
-    const hy = ((90 - dec) / 180) * H;
+    const hx = ((((rightAscension % 360) + 360) % 360) / 360) * canvasWidth;
+    const hy = ((90 - declination) / 180) * canvasHeight;
 
     [16, 10, 6].forEach((r, i) => {
-      ctx.beginPath();
-      ctx.arc(hx, hy, r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255,208,96,${[0.04, 0.08, 0.15][i]})`;
-      ctx.fill();
+      context.beginPath();
+      context.arc(hx, hy, r, 0, Math.PI * 2);
+      context.fillStyle = `rgba(255,208,96,${[0.04, 0.08, 0.15][i]})`;
+      context.fill();
     });
 
-    ctx.beginPath();
-    ctx.arc(hx, hy, 3.5, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffd060";
-    ctx.fill();
+    context.beginPath();
+    context.arc(hx, hy, 3.5, 0, Math.PI * 2);
+    context.fillStyle = "#ffd060";
+    context.fill();
 
-    ctx.fillStyle = "rgba(255,208,96,0.9)";
-    ctx.font = "11px monospace";
-    ctx.fillText(starName, hx + 10, hy - 8);
+    context.fillStyle = "rgba(255,208,96,0.9)";
+    context.font = "11px monospace";
+    context.fillText(starName, hx + 10, hy - 8);
 
-    ctx.fillStyle = "rgba(255,255,255,0.3)";
-    ctx.font = "10px monospace";
-    ctx.textAlign = "right";
-    ctx.fillText(`RA ${ra.toFixed(4)}°  Dec ${dec.toFixed(4)}°`, W - 8, H - 6);
+    context.fillStyle = "rgba(255,255,255,0.3)";
+    context.font = "10px monospace";
+    context.textAlign = "right";
+    context.fillText(
+      `RA ${rightAscension.toFixed(4)}°  Dec ${declination.toFixed(4)}°`,
+      canvasWidth - 8,
+      canvasHeight - 6,
+    );
 
-    ctx.strokeStyle = "rgba(255,208,96,0.25)";
-    ctx.lineWidth = 0.5;
-    ctx.setLineDash([4, 4]);
-    ctx.beginPath();
-    ctx.moveTo(hx, 0);
-    ctx.lineTo(hx, H);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(0, hy);
-    ctx.lineTo(W, hy);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    context.strokeStyle = "rgba(255,208,96,0.25)";
+    context.lineWidth = 0.5;
+    context.setLineDash([4, 4]);
+    context.beginPath();
+    context.moveTo(hx, 0);
+    context.lineTo(hx, canvasHeight);
+    context.stroke();
+    context.beginPath();
+    context.moveTo(0, hy);
+    context.lineTo(canvasWidth, hy);
+    context.stroke();
+    context.setLineDash([]);
   }
 </script>
