@@ -42,6 +42,17 @@ export const prerender = true;
 </Layout>
 
 <script>
+  type BookmarkedPlanet = {
+    id: string;
+    name: string;
+    host_star: string;
+    planet_type: string | null;
+    habitability_pct: number | null;
+    radius_earth: number | null;
+    discovery_year: number | null;
+    savedAt: string;
+  };
+
   function getBookmarks() {
     try {
       return JSON.parse(localStorage.getItem("exoatlas:bookmarks") ?? "[]");
@@ -60,7 +71,7 @@ export const prerender = true;
   if (!bookmarks.length) {
     empty.style.display = "block";
   } else {
-    bookmarks.forEach((planet) => {
+    bookmarks.forEach((planet: BookmarkedPlanet) => {
       const habColor =
         (planet.habitability_pct ?? 0) >= 70
           ? "var(--ds-green-600)"
@@ -103,7 +114,9 @@ export const prerender = true;
     document.querySelectorAll(".remove-btn").forEach((btn) => {
       btn?.addEventListener("click", () => {
         const id = btn.id;
-        const list = getBookmarks().filter((bm) => bm.id !== id);
+        const list = getBookmarks().filter(
+          (bm: BookmarkedPlanet) => bm.id !== id,
+        );
         localStorage.setItem("exoatlas:bookmarks", JSON.stringify(list));
         btn.closest(".bookmark-card")?.remove();
         countEl.textContent = `${list.length} saved`;
