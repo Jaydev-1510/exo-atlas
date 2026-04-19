@@ -14,6 +14,35 @@ export type Database = {
   }
   public: {
     Tables: {
+      planet_ai_cache: {
+        Row: {
+          generated_at: string | null
+          narrative: string | null
+          planet_id: string
+          summary: string | null
+        }
+        Insert: {
+          generated_at?: string | null
+          narrative?: string | null
+          planet_id: string
+          summary?: string | null
+        }
+        Update: {
+          generated_at?: string | null
+          narrative?: string | null
+          planet_id?: string
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "planet_ai_cache_planet_id_fkey"
+            columns: ["planet_id"]
+            isOneToOne: true
+            referencedRelation: "planets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       planets: {
         Row: {
           created_at: string | null
