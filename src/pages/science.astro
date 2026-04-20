@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 const batchSize = 1000;
 let from = 0;
 let planets = [];
+let stars = [];
 
 while (true) {
   const { data: rows, error } = await supabaseAdmin
@@ -22,6 +23,28 @@ while (true) {
   if (rows.length < batchSize) break;
   from += batchSize;
 }
+
+while (true) {
+  const { data: rows, error } = await supabaseAdmin
+    .from("planets")
+    .select("host_star, stellar_temp, stellar_radius, name")
+    .not("stellar_temp", "is", null)
+    .not("stellar_radius", "is", null)
+    .range(from, from + batchSize - 1);
+
+  if (error) throw error;
+
+  stars.push(...rows);
+
+  if (rows.length < batchSize) break;
+  from += batchSize;
+}
+
+const starMap = new Map<string, any>();
+for (const star of stars ?? []) {
+  if (!starMap.has(star.host_star)) starMap.set(star.host_star, star);
+}
+const uniqueStars = Array.from(starMap.values());
 ---
 
 <Layout title="Science Plots — Exoplanet Atlas">
@@ -69,11 +92,41 @@ while (true) {
           </div>
         </div>
       </div>
+
+      <div class="bg-background-200 border border-gray-300 rounded-xl p-6">
+        <div class="flex items-baseline justify-between mb-1">
+          <div
+            class="font-mono text-xs text-gray-600 uppercase tracking-widest"
+          >
+            Hertzsprung-Russell diagram
+          </div>
+          <span class="font-mono text-xs text-gray-500" id="hr-count"></span>
+        </div>
+        <p class="text-xs text-gray-500 mb-5">
+          Host stars plotted by temperature (x) vs size (y). The main sequence
+          diagonal, giant branch, and dwarf stars emerge from real data. Hover a
+          star to see its planets.
+        </p>
+        <div class="relative">
+          <div class="rounded-sm overflow-hidden">
+            <canvas
+              id="hr-canvas"
+              height="400"
+              style="width:100%;height:400px;cursor:crosshair"></canvas>
+          </div>
+          <div
+            id="hr-tooltip"
+            class="absolute bg-background-100/85 backdrop-blur-lg border-[0.5px] border-gray-400 rounded-lg py-2 px-3 z-10 text-xs pointer-events-none"
+            style="display:none;"
+          >
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 </Layout>
 
-<script is:inline define:vars={{ planets }}>
+<script is:inline define:vars={{ planets, uniqueStars }}>
   const planetColorMap = {
     rocky: "#8a7040",
     "super-earth": "#3a9e75",
@@ -325,5 +378,232 @@ while (true) {
 
     if (hoveredPlanet)
       window.location.href = `/planet/${hoveredPlanet.name.toLowerCase().replace(/\s+/g, "-")}`;
+  });
+
+  const HertzRussCanvas = document.getElementById("hr-canvas");
+  const HRToolTip = document.getElementById("hr-tooltip");
+  const HRCount = document.getElementById("hr-count");
+  HertzRussCanvas.width = HertzRussCanvas.offsetWidth || 800;
+
+  const HRCanvasW = HertzRussCanvas.width;
+  const HRCanvasH = HertzRussCanvas.height;
+  const HRContext = HertzRussCanvas.getContext("2d");
+
+  HRCount.textContent = `${uniqueStars.length} host stars`;
+
+  const minTemp = 2000,
+    maxTemp = 40000;
+  const minRadius = 0.05,
+    maxRadius = 100;
+
+  function HertzRussX(temp) {
+    return (
+      chartPadding.left +
+      (1 - (temp - minTemp) / (maxTemp - minTemp)) *
+        (HRCanvasW - chartPadding.left - chartPadding.right)
+    );
+  }
+  function HertzRussY(radius) {
+    return (
+      HRCanvasH -
+      chartPadding.bottom -
+      ((Math.log10(Math.max(radius, 0.01)) - Math.log10(minRadius)) /
+        (Math.log10(maxRadius) - Math.log10(minRadius))) *
+        (HRCanvasH - chartPadding.top - chartPadding.bottom)
+    );
+  }
+
+  function stellarColor(temp) {
+    if (!temp) return "#aaaaaa";
+    if (temp > 30000) return "#9bb0ff";
+    if (temp > 10000) return "#aabfff";
+    if (temp > 7500) return "#f8f7ff";
+    if (temp > 6000) return "#fff4e8";
+    if (temp > 5200) return "#ffdd90";
+    if (temp > 3700) return "#ffb347";
+    return "#ff6b35";
+  }
+
+  function drawHR() {
+    HRContext.clearRect(0, 0, HRCanvasW, HRCanvasH);
+    HRContext.fillStyle = "#000000";
+    HRContext.fillRect(0, 0, HRCanvasW, HRCanvasH);
+
+    const stellarColorBands = [
+      {
+        minTemp: 30000,
+        maxTemp: 40000,
+        color: "#000001",
+        label: "O",
+      },
+      {
+        minTemp: 10000,
+        maxTemp: 30000,
+        color: "#00002030",
+        label: "B",
+      },
+      {
+        minTemp: 7500,
+        maxTemp: 10000,
+        color: "#ffffff05",
+        label: "A",
+      },
+      {
+        minTemp: 6000,
+        maxTemp: 7500,
+        color: "#ffffc510",
+        label: "F",
+      },
+      { minTemp: 5200, maxTemp: 6000, color: "#e79c1317", label: "G" },
+      { minTemp: 3700, maxTemp: 5200, color: "#ff3c0017", label: "K" },
+      { minTemp: 2000, maxTemp: 3700, color: "#ff000017", label: "M" },
+    ];
+    stellarColorBands.forEach((band) => {
+      const x1 = HertzRussX(band.maxTemp),
+        x2 = HertzRussX(band.minTemp);
+      HRContext.fillStyle = band.color;
+      HRContext.fillRect(
+        x1,
+        chartPadding.top,
+        x2 - x1,
+        HRCanvasH - chartPadding.top - chartPadding.bottom,
+      );
+      HRContext.fillStyle = "rgba(255,255,255,0.5)";
+      HRContext.font = "12px monospace";
+      HRContext.textAlign = "center";
+      HRContext.fillText(band.label, (x1 + x2) / 2, chartPadding.top + 14);
+    });
+
+    HRContext.strokeStyle = "rgba(255,255,255,0.12)";
+    HRContext.lineWidth = 0.5;
+    [3000, 5000, 8000, 12000, 20000, 35000].forEach((temp) => {
+      const x = HertzRussX(temp);
+      HRContext.beginPath();
+      HRContext.moveTo(x, chartPadding.top);
+      HRContext.lineTo(x, HRCanvasH - chartPadding.bottom);
+      HRContext.stroke();
+      HRContext.fillStyle = "rgba(255,255,255,0.3)";
+      HRContext.font = "12px monospace";
+      HRContext.textAlign = "center";
+      HRContext.fillText(
+        `${(temp / 1000).toFixed(0)}k K`,
+        x,
+        HRCanvasH - chartPadding.bottom + 14,
+      );
+    });
+    [0.1, 0.5, 1, 2, 5, 10, 50].forEach((radius) => {
+      const y = HertzRussY(radius);
+      if (y < chartPadding.top || y > HRCanvasH - chartPadding.bottom) return;
+      HRContext.beginPath();
+      HRContext.moveTo(chartPadding.left, y);
+      HRContext.lineTo(HRCanvasW - chartPadding.right, y);
+      HRContext.stroke();
+      HRContext.fillStyle = "rgba(255,255,255,0.3)";
+      HRContext.font = "11px monospace";
+      HRContext.textAlign = "right";
+      HRContext.fillText(`${radius}R☉`, chartPadding.left - 5, y + 3);
+    });
+
+    HRContext.fillStyle = "rgba(255,255,255,0.5)";
+    HRContext.font = "12px monospace";
+    HRContext.textAlign = "center";
+    HRContext.fillText("Temperature (K)", MRWidth / 2, HRCanvasH - 6);
+    HRContext.save();
+    HRContext.translate(14, HRCanvasH / 2);
+    HRContext.rotate(-Math.PI / 2);
+    HRContext.fillText("Radius (solar radii, log scale)", 0, 0);
+    HRContext.restore();
+
+    const sunX = HertzRussX(5778),
+      sunY = HertzRussY(1);
+    HRContext.beginPath();
+    HRContext.arc(sunX, sunY, 5, 0, Math.PI * 2);
+    HRContext.fillStyle = "#ffd060";
+    HRContext.fill();
+    HRContext.fillStyle = "rgba(255,208,96,0.6)";
+    HRContext.font = "12px monospace";
+    HRContext.textAlign = "left";
+    HRContext.fillText("Sun", sunX + 7, sunY + 3);
+
+    uniqueStars.forEach((star) => {
+      const x = HertzRussX(star.stellar_temp);
+      const y = HertzRussY(star.stellar_radius);
+      if (
+        x < chartPadding.left ||
+        x > HRCanvasW - chartPadding.right ||
+        y < chartPadding.top ||
+        y > HRCanvasH - chartPadding.bottom
+      )
+        return;
+      HRContext.beginPath();
+      HRContext.arc(x, y, 2.5, 0, Math.PI * 2);
+      HRContext.fillStyle = stellarColor(star.stellar_temp) + "bb";
+      HRContext.fill();
+    });
+  }
+
+  drawHR();
+
+  HertzRussCanvas.addEventListener("mousemove", (e) => {
+    const rect = HertzRussCanvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (HRCanvasW / rect.width);
+    const mouseY = (e.clientY - rect.top) * (HRCanvasH / rect.height);
+    let hoveredStar = null,
+      minDist = 10;
+
+    uniqueStars.forEach((star) => {
+      const x = HertzRussX(star.stellar_temp),
+        y = HertzRussY(star.stellar_radius);
+      const dx = x - mouseX,
+        dy = y - mouseY,
+        d = Math.sqrt(dx * dx + dy * dy);
+      if (d < minDist) {
+        minDist = d;
+        hoveredStar = star;
+      }
+    });
+
+    if (hoveredStar) {
+      HertzRussCanvas.style.cursor = "pointer";
+      HRToolTip.style.display = "block";
+      HRToolTip.style.left = `${e.clientX - HertzRussCanvas.getBoundingClientRect().left + 12}px`;
+      HRToolTip.style.top = `${e.clientY - HertzRussCanvas.getBoundingClientRect().top - 10}px`;
+      HRToolTip.innerHTML = `
+      <div style="font-weight:500;color:var(--ds-gray-1000);margin-bottom:4px">${hoveredStar.host_star}</div>
+      <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${Math.round(hoveredStar.stellar_temp).toLocaleString()} K</div>
+      <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${Number(hoveredStar.stellar_radius).toFixed(2)} R☉</div>
+      <div style="color:var(--ds-gray-500);font-family:var(--font-geist-mono);font-size:10px;margin-top:3px">click to view planet</div>
+    `;
+    } else {
+      HertzRussCanvas.style.cursor = "default";
+      HRToolTip.style.display = "none";
+    }
+  });
+
+  HertzRussCanvas.addEventListener("mouseleave", () => {
+    HRToolTip.style.display = "none";
+  });
+
+  HertzRussCanvas.addEventListener("click", (e) => {
+    const rect = HertzRussCanvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (HRCanvasW / rect.width);
+    const mouseY = (e.clientY - rect.top) * (HRCanvasH / rect.height);
+    let hoveredStar = null,
+      minDist = 10;
+
+    uniqueStars.forEach((star) => {
+      const x = HertzRussX(star.stellar_temp),
+        y = HertzRussY(star.stellar_radius);
+      const dx = x - mouseX,
+        dy = y - mouseY,
+        d = Math.sqrt(dx * dx + dy * dy);
+      if (d < minDist) {
+        minDist = d;
+        hoveredStar = star;
+      }
+    });
+
+    if (hoveredStar)
+      window.location.href = `/planet/${hoveredStar.name.toLowerCase().replace(/\s+/g, "-")}`;
   });
 </script>
