@@ -1,0 +1,329 @@
+---
+import Layout from "@/layouts/base.astro";
+import { supabaseAdmin } from "@/lib/supabase";
+
+const batchSize = 1000;
+let from = 0;
+let planets = [];
+
+while (true) {
+  const { data: rows, error } = await supabaseAdmin
+    .from("planets")
+    .select(
+      "id, name, radius_earth, mass_earth, eq_temperature, planet_type, habitability_pct, stellar_temp, stellar_radius, host_star, distance_ly",
+    )
+    .not("radius_earth", "is", null)
+    .range(from, from + batchSize - 1);
+
+  if (error) throw error;
+
+  planets.push(...rows);
+
+  if (rows.length < batchSize) break;
+  from += batchSize;
+}
+---
+
+<Layout title="Science Plots — Exoplanet Atlas">
+  <section class="max-w-6xl mx-auto px-4 pb-10">
+    <header class="flex items-center justify-center py-10 min-h-[12em]">
+      <h1
+        class="absolute text-center font-pixel-line tracking-tighter text-[12em] select-none bg-linear-0 from-black to-primary text-transparent bg-clip-text whitespace-nowrap leading-40"
+      >
+        Science Plots.
+      </h1>
+
+      <p class="font-mono text-md text-secondary mt-[8em] z-20">
+        Real astrophysics diagrams — the same plots researchers use to study
+        exoplanet populations.
+      </p>
+    </header>
+
+    <div class="grid grid-cols-1 gap-6 mb-6">
+      <div class="bg-background-200 border border-gray-300 rounded-xl p-6">
+        <div class="flex items-baseline justify-between mb-1">
+          <div
+            class="font-mono text-xs text-gray-600 uppercase tracking-widest"
+          >
+            Mass–radius diagram
+          </div>
+          <span class="font-mono text-xs text-gray-500" id="mr-count"></span>
+        </div>
+        <p class="text-xs text-gray-500 mb-5">
+          Each dot is a planet with known mass and radius. The distinct clusters
+          reveal planet families — rocky worlds, sub-Neptunes, gas giants. Hover
+          to identify.
+        </p>
+        <div class="relative">
+          <div class="rounded-sm overflow-hidden">
+            <canvas
+              id="mr-canvas"
+              height="400"
+              style="width:100%;height:400px;cursor:crosshair"></canvas>
+          </div>
+          <div
+            id="mr-tooltip"
+            class="absolute bg-background-100/75 backdrop-blur-lg border-[0.5px] border-gray-400 rounded-lg py-2 px-3 z-10 text-xs pointer-events-none"
+            style="display:none;"
+          >
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<script is:inline define:vars={{ planets }}>
+  const planetColorMap = {
+    rocky: "#8a7040",
+    "super-earth": "#3a9e75",
+    "sub-neptune": "#4a8ed4",
+    "neptune-like": "#3a7ed4",
+    "ocean-world": "#3a7ed4",
+    "hot-jupiter": "#E87C1E",
+    "gas-giant": "#8a5bc4",
+    unknown: "#505050",
+  };
+
+  const massRadiusCanvas = document.getElementById("mr-canvas");
+  const MRToolTip = document.getElementById("mr-tooltip");
+  const MRCountEl = document.getElementById("mr-count");
+  massRadiusCanvas.width = massRadiusCanvas.offsetWidth || 800;
+
+  const MRWidth = massRadiusCanvas.width,
+    MRHeight = massRadiusCanvas.height;
+  const MRContext = massRadiusCanvas.getContext("2d");
+  const chartPadding = { top: 20, right: 30, bottom: 50, left: 60 };
+
+  const MRData = (planets ?? []).filter(
+    (planet) =>
+      planet.mass_earth != null &&
+      planet.radius_earth != null &&
+      planet.mass_earth > 0 &&
+      planet.radius_earth > 0 &&
+      planet.mass_earth < 5000 &&
+      planet.radius_earth < 25,
+  );
+
+  MRCountEl.textContent = `${MRData.length} planets`;
+
+  const logMassMin = Math.log10(0.1);
+  const logMassMax = Math.log10(5000);
+  const logRadiusMin = Math.log10(0.3);
+  const logRadiusMax = Math.log10(25);
+
+  function MassRadiusX(mass) {
+    return (
+      chartPadding.left +
+      ((Math.log10(mass) - logMassMin) / (logMassMax - logMassMin)) *
+        (MRWidth - chartPadding.left - chartPadding.right)
+    );
+  }
+
+  function MassRadiusY(radius) {
+    return (
+      MRHeight -
+      chartPadding.bottom -
+      ((Math.log10(radius) - logRadiusMin) / (logRadiusMax - logRadiusMin)) *
+        (MRHeight - chartPadding.top - chartPadding.bottom)
+    );
+  }
+
+  function drawMRGraph() {
+    MRContext.clearRect(0, 0, MRWidth, MRHeight);
+    MRContext.fillStyle = "#000000";
+    MRContext.fillRect(0, 0, MRWidth, MRHeight);
+
+    MRContext.strokeStyle = "rgba(255,255,255,0.12)";
+    MRContext.lineWidth = 0.5;
+    [0.1, 1, 10, 100, 1000].forEach((mass) => {
+      const x = MassRadiusX(mass);
+      MRContext.beginPath();
+      MRContext.moveTo(x, chartPadding.top);
+      MRContext.lineTo(x, MRHeight - chartPadding.bottom);
+      MRContext.stroke();
+      MRContext.fillStyle = "rgba(255,255,255,0.3)";
+      MRContext.font = "12px monospace";
+      MRContext.textAlign = "center";
+      MRContext.fillText(`${mass}`, x, MRHeight - chartPadding.bottom + 14);
+    });
+    [0.5, 1, 2, 4, 8, 15].forEach((radius) => {
+      const y = MassRadiusY(radius);
+      MRContext.beginPath();
+      MRContext.moveTo(chartPadding.left, y);
+      MRContext.lineTo(MRWidth - chartPadding.right, y);
+      MRContext.stroke();
+      MRContext.fillStyle = "rgba(255,255,255,0.3)";
+      MRContext.font = "12px monospace";
+      MRContext.textAlign = "right";
+      MRContext.fillText(`${radius}`, chartPadding.left - 6, y + 3);
+    });
+
+    MRContext.fillStyle = "rgba(255,255,255,0.5)";
+    MRContext.font = "14px monospace";
+    MRContext.textAlign = "center";
+    MRContext.fillText(
+      "Mass (Earth masses, log scale)",
+      MRWidth / 2,
+      MRHeight - 6,
+    );
+    MRContext.save();
+    MRContext.translate(14, MRHeight / 2);
+    MRContext.rotate(-Math.PI / 2);
+    MRContext.fillText("Radius (Earth radii, log scale)", 0, 0);
+    MRContext.restore();
+
+    const compositions = [
+      {
+        label: "Pure iron",
+        slope: 0.3,
+        offset: -0.1,
+        color: "#da3036",
+      },
+      {
+        label: "Earth-like",
+        slope: 0.27,
+        offset: 0.02,
+        color: "#0c9784",
+      },
+      {
+        label: "Water world",
+        slope: 0.26,
+        offset: 0.18,
+        color: "#0091ff",
+      },
+    ];
+    compositions.forEach((compo) => {
+      MRContext.beginPath();
+      MRContext.strokeStyle = compo.color;
+      MRContext.lineWidth = 1;
+      MRContext.setLineDash([4, 4]);
+      let first = true;
+      for (let logM = logMassMin; logM <= logMassMax; logM += 0.05) {
+        const logR = compo.slope * logM + compo.offset;
+        const x = MassRadiusX(Math.pow(10, logM));
+        const y = MassRadiusY(Math.pow(10, logR));
+        if (y < chartPadding.top || y > MRHeight - chartPadding.bottom) {
+          first = true;
+          continue;
+        }
+        first ? MRContext.moveTo(x, y) : MRContext.lineTo(x, y);
+        first = false;
+      }
+      MRContext.stroke();
+      MRContext.setLineDash([]);
+      MRContext.fillStyle = compo.color;
+      MRContext.font = "12px monospace";
+      MRContext.textAlign = "left";
+      const labelX = MassRadiusX(0.5);
+      const labelY =
+        MassRadiusY(
+          Math.pow(10, compo.slope * Math.log10(0.5) + compo.offset),
+        ) - 4;
+      if (labelY > chartPadding.top)
+        MRContext.fillText(compo.label, labelX, labelY);
+    });
+
+    MRData.forEach((planet) => {
+      const x = MassRadiusX(planet.mass_earth);
+      const y = MassRadiusY(planet.radius_earth);
+      if (
+        x < chartPadding.left ||
+        x > MRWidth - chartPadding.right ||
+        y < chartPadding.top ||
+        y > MRHeight - chartPadding.bottom
+      )
+        return;
+      MRContext.beginPath();
+      MRContext.arc(x, y, 3, 0, Math.PI * 2);
+      MRContext.fillStyle =
+        (planetColorMap[planet.planet_type] ?? "#505050") + "cc";
+      MRContext.fill();
+    });
+
+    const legendTypes = [
+      "rocky",
+      "super-earth",
+      "sub-neptune",
+      "hot-jupiter",
+      "gas-giant",
+    ];
+
+    legendTypes.forEach((type, i) => {
+      const legendX = chartPadding.left + i * 120;
+      const legendY = chartPadding.top + 10;
+      MRContext.beginPath();
+      MRContext.arc(legendX, legendY, 4, 0, Math.PI * 2);
+      MRContext.fillStyle = planetColorMap[type];
+      MRContext.fill();
+      MRContext.fillStyle = "rgba(255,255,255,0.5)";
+      MRContext.font = "14px monospace";
+      MRContext.textAlign = "left";
+      MRContext.fillText(type, legendX + 8, legendY + 3);
+    });
+  }
+  drawMRGraph();
+
+  massRadiusCanvas.addEventListener("mousemove", (e) => {
+    const rect = massRadiusCanvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (MRWidth / rect.width);
+    const mouseY = (e.clientY - rect.top) * (MRHeight / rect.height);
+    let hoveredPlanet = null;
+    let minDistance = 12;
+
+    MRData.forEach((planet) => {
+      const x = MassRadiusX(planet.mass_earth);
+      const y = MassRadiusY(planet.radius_earth);
+      const dx = x - mouseX,
+        dy = y - mouseY;
+      const d = Math.sqrt(dx * dx + dy * dy);
+      if (d < minDistance) {
+        minDistance = d;
+        hoveredPlanet = planet;
+      }
+    });
+
+    if (hoveredPlanet) {
+      massRadiusCanvas.style.cursor = "pointer";
+      MRToolTip.style.display = "block";
+      MRToolTip.style.left = `${e.clientX - massRadiusCanvas.getBoundingClientRect().left + 12}px`;
+      MRToolTip.style.top = `${e.clientY - massRadiusCanvas.getBoundingClientRect().top - 10}px`;
+      MRToolTip.innerHTML = `
+      <div style="font-weight:500;color:var(--ds-gray-1000);margin-bottom:4px">${hoveredPlanet.name}</div>
+      <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${hoveredPlanet.planet_type ?? "unknown"}</div>
+      <div style="color:var(--ds-gray-600);font-family:var(--font-geist-mono);font-size:11px">${Number(hoveredPlanet.radius_earth).toFixed(2)} R⊕ · ${Number(hoveredPlanet.mass_earth).toFixed(2)} M⊕</div>
+      <div style="color:var(--ds-gray-500);font-family:var(--font-geist-mono);font-size:10px;margin-top:3px">click to view</div>
+    `;
+    } else {
+      massRadiusCanvas.style.cursor = "default";
+      MRToolTip.style.display = "none";
+    }
+  });
+
+  massRadiusCanvas.addEventListener("mouseleave", () => {
+    MRToolTip.style.display = "none";
+  });
+
+  massRadiusCanvas.addEventListener("click", (e) => {
+    const rect = massRadiusCanvas.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * (MRWidth / rect.width);
+    const mouseY = (e.clientY - rect.top) * (MRHeight / rect.height);
+    let hoveredPlanet = null,
+      minDistance = 12;
+
+    MRData.forEach((planet) => {
+      const x = MassRadiusX(planet.mass_earth),
+        y = MassRadiusY(planet.radius_earth);
+      const dx = x - mouseX,
+        dy = y - mouseY,
+        d = Math.sqrt(dx * dx + dy * dy);
+      if (d < minDistance) {
+        minDistance = d;
+        hoveredPlanet = planet;
+      }
+    });
+
+    if (hoveredPlanet)
+      window.location.href = `/planet/${hoveredPlanet.name.toLowerCase().replace(/\s+/g, "-")}`;
+  });
+</script>
