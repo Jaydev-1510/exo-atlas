@@ -45,6 +45,15 @@ for (const star of stars ?? []) {
   if (!starMap.has(star.host_star)) starMap.set(star.host_star, star);
 }
 const uniqueStars = Array.from(starMap.values());
+
+const radiusData = planets
+  .filter(
+    (planet) =>
+      planet.radius_earth != null &&
+      planet.radius_earth > 0 &&
+      planet.radius_earth < 25,
+  )
+  .map((planet) => ({ radius: planet.radius_earth, type: planet.planet_type }));
 ---
 
 <Layout title="Science Plots — Exoplanet Atlas">
@@ -72,7 +81,7 @@ const uniqueStars = Array.from(starMap.values());
           </div>
           <span class="font-mono text-xs text-gray-500" id="mr-count"></span>
         </div>
-        <p class="text-xs text-gray-500 mb-5">
+        <p class="text-[13px] text-gray-500 mb-5">
           Each dot is a planet with known mass and radius. The distinct clusters
           reveal planet families — rocky worlds, sub-Neptunes, gas giants. Hover
           to identify.
@@ -102,7 +111,7 @@ const uniqueStars = Array.from(starMap.values());
           </div>
           <span class="font-mono text-xs text-gray-500" id="hr-count"></span>
         </div>
-        <p class="text-xs text-gray-500 mb-5">
+        <p class="text-[13px] text-gray-500 mb-5">
           Host stars plotted by temperature (x) vs size (y). The main sequence
           diagonal, giant branch, and dwarf stars emerge from real data. Hover a
           star to see its planets.
@@ -122,11 +131,32 @@ const uniqueStars = Array.from(starMap.values());
           </div>
         </div>
       </div>
+
+      <div class="bg-background-200 border border-gray-300 rounded-xl p-6">
+        <div class="flex items-baseline justify-between mb-1">
+          <div
+            class="font-mono text-xs text-gray-600 uppercase tracking-widest"
+          >
+            Radius gap (Fulton gap)
+          </div>
+          <span class="font-mono text-xs text-gray-500" id="gap-count"></span>
+        </div>
+        <p class="text-[13px] text-gray-500 mb-5">
+          distribution of planet radii shows a mysterious gap between 1.5-2
+          Earth radii, the "Fulton gap". Planets rarely have radii in this
+          range. Although the gap isn't clear here, this is a real discovery
+          from Kepler data.
+        </p>
+        <div class="rounded-sm overflow-hidden">
+          <canvas id="gap-canvas" height="250" style="width:100%;height:250px;"
+          ></canvas>
+        </div>
+      </div>
     </div>
   </section>
 </Layout>
 
-<script is:inline define:vars={{ planets, uniqueStars }}>
+<script is:inline define:vars={{ planets, uniqueStars, radiusData }}>
   const planetColorMap = {
     rocky: "#8a7040",
     "super-earth": "#3a9e75",
@@ -606,4 +636,101 @@ const uniqueStars = Array.from(starMap.values());
     if (hoveredStar)
       window.location.href = `/planet/${hoveredStar.name.toLowerCase().replace(/\s+/g, "-")}`;
   });
+
+  const FGCanvas = document.getElementById("gap-canvas");
+  const FGCount = document.getElementById("gap-count");
+
+  const FGContext = FGCanvas.getContext("2d");
+  FGCanvas.width = FGCanvas.offsetWidth || 800;
+  const FGCanvasW = FGCanvas.width;
+  const FGCanvasH = FGCanvas.height;
+
+  const BINS = 100;
+  const BIN_MAX = 5;
+  const binSize = BIN_MAX / BINS;
+  const counts = new Array(BINS).fill(0);
+
+  radiusData.forEach((planet) => {
+    const bin = Math.floor(planet.radius / binSize);
+    if (bin >= 0 && bin < BINS) counts[bin]++;
+  });
+  console.log(radiusData);
+  const maxCount = Math.max(...counts);
+  FGCount.textcontent = `${radiusData.length} planets`;
+
+  FGContext.fillStyle = "#000000";
+  FGContext.fillRect(0, 0, FGCanvasW, FGCanvasH);
+
+  const FGPadding = { top: 20, right: 20, left: 50, bottom: 40 };
+  const barWidth = (FGCanvasW - FGPadding.left - FGPadding.right) / BINS;
+
+  const gapX1 =
+    FGPadding.left +
+    (1.5 / BIN_MAX) * (FGCanvasW - FGPadding.left - FGPadding.right);
+  const gapX2 =
+    FGPadding.left +
+    (2 / BIN_MAX) * (FGCanvasW - FGPadding.left - FGPadding.right);
+
+  FGContext.fillStyle = "rgba(239,68,68,0.08)";
+  FGContext.fillRect(
+    gapX1,
+    FGPadding.top - 10,
+    gapX2 - gapX1,
+    FGCanvasH - FGPadding.top - FGPadding.bottom,
+  );
+  FGContext.fillStyle = "#da3036";
+  FGContext.font = "12px monospace";
+  FGContext.textAlign = "center";
+  FGContext.fillText("Fulton gap", (gapX1 + gapX2) / 2, FGPadding.top + 8);
+
+  counts.forEach((count, i) => {
+    const X = FGPadding.left + i * barWidth;
+    const barHeight =
+      (count / maxCount) * (FGCanvasH - FGPadding.top - FGPadding.bottom);
+    const barY = FGCanvasH - FGPadding.bottom - barHeight;
+    const rVal = i * binSize;
+    const col =
+      rVal < 1.5
+        ? "#e79c13"
+        : rVal < 2.0
+          ? "#da303675"
+          : rVal < 3
+            ? "#0091ff"
+            : rVal < 4
+              ? "#1a9338"
+              : "#8a5bc4";
+
+    FGContext.fillStyle = col;
+    FGContext.fillRect(X + 0.5, barY, barWidth - 1, barHeight);
+  });
+
+  [0, 1, 1.5, 2, 3, 4, 5, 6].forEach((r) => {
+    const X =
+      FGPadding.left +
+      (r / BIN_MAX) * (FGCanvasW - FGPadding.left - FGPadding.right);
+    FGContext.fillStyle = "rgba(255,255,255,0.3)";
+    FGContext.font = "12px monospace";
+    FGContext.textAlign = "center";
+    FGContext.fillText(`${r}`, X, FGCanvasH - FGPadding.bottom + 14);
+    FGContext.strokeStyle = "rgba(255,255,255,0.05)";
+    FGContext.lineWidth = 0.5;
+    FGContext.beginPath();
+    FGContext.moveTo(X, FGPadding.top);
+    FGContext.lineTo(X, FGCanvasH - FGPadding.bottom);
+    FGContext.stroke();
+  });
+
+  FGContext.fillStyle = "rgba(255,255,255,0.5)";
+  FGContext.font = "12px monospace";
+  FGContext.textAlign = "center";
+  FGContext.fillText(
+    "planet radius (Earth radii)",
+    FGCanvasW / 2,
+    FGCanvasH - 4,
+  );
+  FGContext.save();
+  FGContext.translate(14, FGCanvasH / 2);
+  FGContext.rotate(-Math.PI / 2);
+  FGContext.fillText("Number of planets", 0, 0);
+  FGContext.restore();
 </script>
