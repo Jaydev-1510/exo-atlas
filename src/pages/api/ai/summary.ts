@@ -1,6 +1,6 @@
 import type { APIRoute } from "astro";
 import { groqChat } from "@/lib/groq";
-import { supabase, supabaseAdmin } from "@/lib/supabase";
+import { supabaseAdmin } from "@/lib/supabase";
 
 export const prerender = false;
 
