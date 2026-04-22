@@ -47,13 +47,13 @@ function classifyPlanet(
 
 function classifyMethod(raw: string | null) {
   if (!raw) return "other";
-  const m = raw.toLowerCase();
-  if (m.includes("transit")) return "transit";
-  if (m.includes("radial")) return "radial-velocity";
-  if (m.includes("imaging")) return "direct-imaging";
-  if (m.includes("microlensing")) return "microlensing";
-  if (m.includes("astrometry")) return "astrometry";
-  if (m.includes("timing")) return "timing";
+  const method = raw.toLowerCase();
+  if (method.includes("transit")) return "transit";
+  if (method.includes("radial")) return "radial-velocity";
+  if (method.includes("imaging")) return "direct-imaging";
+  if (method.includes("microlensing")) return "microlensing";
+  if (method.includes("astrometry")) return "astrometry";
+  if (method.includes("timing")) return "timing";
   return "other";
 }
 
@@ -66,11 +66,13 @@ async function fetchFromNASA(): Promise<NASARow[]> {
   });
 
   console.log("Fetching from NASA Exoplanet Archive...");
-  const res = await fetch(`${NASA_TAP_URL}?${params}`);
-  if (!res.ok)
-    throw new Error(`NASA API error: ${res.status} ${res.statusText}`);
+  const response = await fetch(`${NASA_TAP_URL}?${params}`);
+  if (!response.ok)
+    throw new Error(
+      `NASA API error: ${response.status} ${response.statusText}`,
+    );
 
-  const data = await res.json();
+  const data = await response.json();
   console.log(`Fetched ${data.length} planets`);
   return data;
 }
@@ -79,34 +81,36 @@ async function ingest() {
   const rows = await fetchFromNASA();
 
   const planetMap = new Map<string, (typeof rows)[0]>();
-  for (const r of rows) {
-    if (!planetMap.has(r.pl_name)) {
-      planetMap.set(r.pl_name, r);
+  for (const row of rows) {
+    if (!planetMap.has(row.pl_name)) {
+      planetMap.set(row.pl_name, row);
     }
   }
-  const unique = Array.from(planetMap.values());
+  const uniquePlanetMap = Array.from(planetMap.values());
   console.log(
-    `Unique planets after dedup: ${unique.length} (removed ${rows.length - unique.length} duplicates)`,
+    `Unique planets after dedup: ${uniquePlanetMap.length} (removed ${rows.length - uniquePlanetMap.length} duplicates)`,
   );
 
-  const planets = unique.map((r) => ({
-    name: r.pl_name,
-    host_star: r.hostname,
-    ra: r.ra,
-    dec: r.dec,
-    distance_ly: r.sy_dist ? Math.round(r.sy_dist * 3.26156 * 100) / 100 : null,
-    radius_earth: r.pl_rade,
-    mass_earth: r.pl_bmasse,
-    orbital_period: r.pl_orbper,
-    eq_temperature: r.pl_eqt,
-    surface_gravity: r.pl_dens,
-    stellar_type: r.st_spectype,
-    stellar_temp: r.st_teff,
-    stellar_radius: r.st_rad,
-    discovery_year: r.disc_year,
-    discovery_method: classifyMethod(r.discoverymethod) as any,
-    planet_type: classifyPlanet(r.pl_rade, r.pl_orbper, r.pl_eqt) as any,
-    nasa_id: r.pl_name,
+  const planets = uniquePlanetMap.map((row) => ({
+    name: row.pl_name,
+    host_star: row.hostname,
+    ra: row.ra,
+    dec: row.dec,
+    distance_ly: row.sy_dist
+      ? Math.round(row.sy_dist * 3.26156 * 100) / 100
+      : null,
+    radius_earth: row.pl_rade,
+    mass_earth: row.pl_bmasse,
+    orbital_period: row.pl_orbper,
+    eq_temperature: row.pl_eqt,
+    surface_gravity: row.pl_dens,
+    stellar_type: row.st_spectype,
+    stellar_temp: row.st_teff,
+    stellar_radius: row.st_rad,
+    discovery_year: row.disc_year,
+    discovery_method: classifyMethod(row.discoverymethod) as any,
+    planet_type: classifyPlanet(row.pl_rade, row.pl_orbper, row.pl_eqt) as any,
+    nasa_id: row.pl_name,
   }));
 
   console.log("Upserting to Supabase...");
