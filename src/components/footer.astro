@@ -107,7 +107,9 @@ const { data: featured } = await supabase.rpc("get_planets", {
             [
               { label: "Planet Atlas", href: "/atlas" },
               { label: "Discovery Timeline", href: "/timeline" },
-              { label: "Stellar Systems", href: "systems" },
+              { label: "Stellar Systems", href: "/systems" },
+              { label: "Science Plots", href: "/science" },
+              { label: "Collections", href: "/collections" },
             ].map(({ label, href }) => (
               <li>
                 <a
