@@ -49,10 +49,10 @@ const typeStyles: Record<string, string> = {
 
 const habColor =
   (planet.habitability_pct ?? 0) >= 70
-    ? "var(--ds-green-500)"
+    ? "var(--ds-green-600)"
     : (planet.habitability_pct ?? 0) >= 40
-      ? "var(--ds-amber-500)"
-      : "var(--ds-red-500)";
+      ? "var(--ds-amber-600)"
+      : "var(--ds-red-600)";
 
 const planetType = planet.planet_type ?? "unknown";
 
@@ -167,12 +167,12 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
                 label: "Discovered",
                 value: planet.discovery_year?.toString() ?? "—",
               },
-            ].map((m) => (
+            ].map((measure) => (
               <div class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5">
                 <dt class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]">
-                  {m.label}
+                  {measure.label}
                 </dt>
-                <dd class="font-mono text-sm text-primary">{m.value}</dd>
+                <dd class="font-mono text-sm text-primary">{measure.value}</dd>
               </div>
             ))
           }
