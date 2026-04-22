@@ -168,6 +168,42 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_planet_of_the_day: {
+        Args: never
+        Returns: {
+          created_at: string | null
+          dec: number | null
+          discovery_method:
+            | Database["public"]["Enums"]["discovery_method"]
+            | null
+          discovery_year: number | null
+          distance_ly: number | null
+          eq_temperature: number | null
+          esi_score: number | null
+          fts: unknown
+          habitability_pct: number | null
+          host_star: string
+          id: string
+          mass_earth: number | null
+          name: string
+          nasa_id: string | null
+          orbital_period: number | null
+          planet_type: Database["public"]["Enums"]["planet_type"] | null
+          ra: number | null
+          radius_earth: number | null
+          stellar_radius: number | null
+          stellar_temp: number | null
+          stellar_type: string | null
+          surface_gravity: number | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "planets"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_planets: {
         Args: {
           p_habitable?: boolean
