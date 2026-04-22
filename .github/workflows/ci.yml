@@ -7,44 +7,29 @@ on:
     branches: [main]
 
 jobs:
-  typecheck:
-    name: Type check
+  ci:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - run: bun install
-      - run: bun astro check
 
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - run: bun install
-      - run: bun run lint
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_PUBLIC_KEY: ${{ secrets.SUPABASE_PUBLIC_KEY }}
       SUPABASE_ADMIN_KEY: ${{ secrets.SUPABASE_ADMIN_KEY }}
       CRON_SECRET: ${{ secrets.CRON_SECRET }}
+
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+
+      - uses: withastro/action@v5
         with:
           node-version: 22
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - run: bun install
-      - run: bun run build
+          install: true
+          build: false
+
+      - name: Type check
+        run: bun astro check
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Build
+        run: bun run build
