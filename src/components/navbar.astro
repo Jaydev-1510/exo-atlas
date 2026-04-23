@@ -1,7 +1,7 @@
 ---
 const links = [
-  { href: "/", label: "Home" },
   { href: "/atlas", label: "Atlas" },
+  { href: "/explore", label: "explore" },
   { href: "/timeline", label: "Timeline" },
   { href: "/systems", label: "Systems" },
   { href: "/science", label: "Science" },
@@ -36,16 +36,16 @@ const links = [
 
     <ul class="flex items-center gap-6">
       {
-        links.map((l) => {
-          const isActive = Astro.url.pathname === l.href;
+        links.map((link) => {
+        const isActive = Astro.url.pathname === link.href;
           return (
             <li class="relative group">
               <a
-                href={l.href}
+                href={link.href}
                 aria-current={isActive ? "page" : undefined}
                 class={`text-[11px] font-bold uppercase tracking-widest transition-colors duration-300 ${isActive ? "text-primary" : "text-secondary group-hover:text-primary"}`}
               >
-                {l.label}
+                {link.label}
               </a>
               <span
                 class={`absolute left-0 bottom-0 h-px bg-gray-500 transition-all duration-300 ${isActive ? "w-full" : "w-0 group-hover:w-full"}`}
