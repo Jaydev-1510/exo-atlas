@@ -7,6 +7,8 @@ import { supabase } from "@/lib/supabase";
 export const prerender = false;
 
 const { slug } = Astro.params;
+const ogImage = `${Astro.site ?? ""}/og/${slug}.png`;
+
 const { data: planet } = await supabase
   .rpc("get_planet_by_slug", { p_name: slug ?? "" })
   .single();
@@ -62,7 +64,12 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
 });
 ---
 
-<Layout title={`${planet.name} — Exoplanet Atlas`}>
+<Layout
+  title={`${planet.name} — Exoplanet Atlas`}
+  description={`${planet.name} is a ${planet.planet_type} orbiting ${planet.host_star}, ${planet.distance_ly ? `${Number(planet.distance_ly).toFixed(1)} light-years away.` : "discovered via " + planet.discovery_method + "."}`}
+  ogImage={ogImage}
+  ogType="article"
+>
   <section class="max-w-4xl mx-auto px-4 py-10">
     <header class="mb-8 flex items-baseline justify-between">
       <nav aria-label="Breadcrumb">
@@ -94,6 +101,24 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
         >
           <Icon id="bookmark-icon" glyph="bookmark" />
           <span id="bookmark-label">Save planet</span>
+        </button>
+        <button
+          id="share-btn"
+          class="flex items-center gap-2 text-xs border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-500 transition-colors"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          >
+            <path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9"
+            ></path>
+          </svg>
+          Share card
         </button>
       </div>
     </header>
@@ -535,6 +560,9 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     stellarRadius: planet.stellar_radius ?? 1,
     planetId: planet.id,
     hostStar: planet.host_star,
+    planetEsi: planet.esi_score ?? null,
+    planetHabPct: planet.habitability_pct ?? null,
+    planetDistanceLy: planet.distance_ly ?? null,
   }}
 >
   const COLORS = {
