@@ -7,12 +7,23 @@ import Footer from "@/components/footer.astro";
 interface Props {
   title?: string;
   description?: string;
+  ogImage?: string;
+  ogType?: string;
 }
 
 const {
   title = "Exoplanet Atlas",
   description = "A passport for every world beyond our solar system. Browse 6,000+ confirmed exoplanets.",
+  ogImage,
+  ogType = "website",
 } = Astro.props;
+
+const canonical = new URL(
+  Astro.url.pathname,
+  Astro.site ?? "https://exo-atlas.vercel.app",
+).toString();
+const image =
+  ogImage ?? `${Astro.site ?? "https://exo-atlas.vercel.app"}/banner.png`;
 ---
 
 <html lang="en">
@@ -20,16 +31,31 @@ const {
     <meta charset="utf-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
-    <Font cssVariable="--font-geist" preload />
-    <Font cssVariable="--font-geist-mono" preload />
-    <Font cssVariable="--font-geist-pixel-circle" />
-    <Font cssVariable="--font-geist-pixel-grid" />
-    <Font cssVariable="--font-geist-pixel-line" preload />
-    <Font cssVariable="--font-geist-pixel-square" />
-    <Font cssVariable="--font-geist-pixel-triangle" />
     <meta name="viewport" content="width=device-width" />
     <meta name="generator" content={Astro.generator} />
     <meta name="description" content={description} />
+    <meta name="theme-color" content="#000000" />
+    <link rel="preconnect" href={import.meta.env.PUBLIC_SUPABASE_URL} />
+    <link rel="canonical" href={canonical} />
+
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={image} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonical} />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={image} />
+
+    <Font cssVariable="--font-geist" preload />
+    <Font cssVariable="--font-geist-mono" preload />
+    <Font cssVariable="--font-geist-pixel-line" preload />
+    <Font cssVariable="--font-geist-pixel-circle" />
+    <Font cssVariable="--font-geist-pixel-grid" />
+    <Font cssVariable="--font-geist-pixel-square" />
+    <Font cssVariable="--font-geist-pixel-triangle" />
     <title>{title}</title>
   </head>
   <body class="bg-background-100 font-sans text-white antialiased">
