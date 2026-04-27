@@ -240,7 +240,7 @@ const today = new Date().toLocaleDateString("en-US", {
       </section>
     )
   }
-  <section class="mb-20">
+  <section class="mb-10">
     <div class="flex items-baseline justify-between mb-5">
       <h2 class="text-heading-64 font-pixel-lie text-primary tracking-widest">
         Top rated worlds.
@@ -257,6 +257,45 @@ const today = new Date().toLocaleDateString("en-US", {
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {featured?.map((planet) => <PlanetCard {...planet} />)}
     </div>
+  </section>
+  <div
+    aria-hidden="true"
+    class="w-screen h-px bg-linear-to-r from-transparent via-white/10 to-transparent"
+  >
+  </div>
+  <section class="my-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    {
+      [
+        {
+          href: "/atlas",
+          label: "Browse atlas",
+          sub: "6000+ planets with full filters",
+        },
+        {
+          href: "/explore",
+          label: "Random explore",
+          sub: "Discover a random world instantly",
+        },
+        {
+          href: "/timeline",
+          label: "Timeline",
+          sub: "Discoveries from 1992 to today",
+        },
+        {
+          href: "/science",
+          label: "Science plots",
+          sub: "H-R diagram, mass-radius, Fulton gap",
+        },
+      ].map((c) => (
+        <a
+          href={c.href}
+          class="bg-background-200 border border-gray-300 rounded-xl p-5 hover:border-gray-500 transition-colors block"
+        >
+          <div class="text-sm font-medium text-gray-1000 mb-1">{c.label}</div>
+          <div class="text-xs text-gray-600">{c.sub}</div>
+        </a>
+      ))
+    }
   </section>
 </Layout>
 <script
