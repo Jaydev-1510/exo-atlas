@@ -3,6 +3,7 @@ import { defineConfig, fontProviders } from "astro/config";
 import tailwindcss from "@tailwindcss/vite";
 import vercel from "@astrojs/vercel";
 import path from "path";
+import react from "@astrojs/react";
 
 // https://astro.build/config
 export default defineConfig({
@@ -309,4 +310,5 @@ export default defineConfig({
       exclude: [/^\/api\/.+/],
     },
   }),
+  integrations: [react()],
 });
