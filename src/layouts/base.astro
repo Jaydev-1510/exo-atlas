@@ -49,6 +49,9 @@ const image =
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
 
+    <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com" />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin />
+
     <Font cssVariable="--font-geist" preload />
     <Font cssVariable="--font-geist-mono" preload />
     <Font cssVariable="--font-geist-pixel-line" preload />
@@ -58,11 +61,14 @@ const image =
     <Font cssVariable="--font-geist-pixel-triangle" />
     <title>{title}</title>
   </head>
-  <body class="bg-background-100 font-sans text-white antialiased">
+  <body class="bg-background-100 font-sans text-primary antialiased">
     <Navbar />
     <main class="max-w-7xl mx-auto px-8 py-20">
       <slot />
     </main>
     <Footer />
-  </body>
+  </body><script>
+    import { initKeyboardNav } from "../lib/keyboard.ts";
+    initKeyboardNav();
+  </script>
 </html>

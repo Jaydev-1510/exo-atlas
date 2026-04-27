@@ -37,7 +37,7 @@ const links = [
     <ul class="flex items-center gap-6">
       {
         links.map((link) => {
-        const isActive = Astro.url.pathname === link.href;
+          const isActive = Astro.url.pathname === link.href;
           return (
             <li class="relative group">
               <a
@@ -55,11 +55,20 @@ const links = [
         })
       }
     </ul>
-
-    <span
-      class="hidden md:inline-block text-[10px] font-mono text-secondary/80 bg-secondary/10 px-2 py-1 rounded-4xl border border-gray-500/20"
-    >
-      LIVE_DATA
-    </span>
+    <div>
+      <span
+        class="hidden md:inline-block text-[10px] font-mono text-secondary/80 bg-secondary/10 px-2 py-1 rounded-4xl border border-gray-500/20"
+      >
+        LIVE_DATA
+      </span>
+      <button
+        id="shortcuts-hint"
+        onclick="document.dispatchEvent(new KeyboardEvent('keydown', {key:'?'}))"
+        class="font-mono text-xs text-gray-600 border border-gray-300 rounded px-1.5 py-0.5 hover:border-gray-500 transition-colors"
+        title="Keyboard shortcuts"
+      >
+        ?
+      </button>
+    </div>
   </nav>
 </header>
