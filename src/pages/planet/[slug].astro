@@ -289,7 +289,78 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
         </div>
       </div>
     </section>
-
+    <section
+      class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <div class="font-mono text-xs text-gray-600 uppercase tracking-widest">
+          Habitable zone
+        </div>
+        <span
+          id="hz-badge"
+          class="font-mono text-xs px-3 py-1 rounded-full border"
+          style="border-color:var(--ds-gray-400);color:var(--ds-gray-600)"
+        >
+          Calculating...
+        </span>
+      </div>
+      <canvas
+        id="hz-canvas"
+        height="150"
+        style="width:100%;height:150px"
+        role="img"
+        aria-label={`Habitable zone diagram for ${planet.name}`}></canvas>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+        <div
+          class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+        >
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Luminosity
+          </div>
+          <div id="hz-luminosity" class="font-mono text-sm text-gray-1000">
+            —
+          </div>
+        </div>
+        <div
+          class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+        >
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Planet distance
+          </div>
+          <div id="hz-planet-au" class="font-mono text-sm text-gray-1000">
+            —
+          </div>
+        </div>
+        <div
+          class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+        >
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            HZ inner edge
+          </div>
+          <div id="hz-inner" class="font-mono text-sm text-gray-1000">—</div>
+        </div>
+        <div
+          class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+        >
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            HZ outer edge
+          </div>
+          <div id="hz-outer" class="font-mono text-sm text-gray-1000">—</div>
+        </div>
+      </div>
+    </section>
     <section
       class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
     >
@@ -1098,12 +1169,12 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
       planetRadius < 2
     ) {
       const hazeGeo = new THREE.SphereGeometry(planetR * 1.15, 16, 16);
-      const hazeMat = new THREE.MeshBasicMaterial({
+      const hazeMaterial = new THREE.MeshBasicMaterial({
         color: 0x4a8ed4,
         transparent: true,
         opacity: 0.08,
       });
-      const hazeMesh = new THREE.Mesh(hazeGeo, hazeMat);
+      const hazeMesh = new THREE.Mesh(hazeGeo, hazeMaterial);
       planetMesh.add(hazeMesh);
     }
 
@@ -1273,4 +1344,377 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     controls.update();
     animate();
   }
+  const STEFAN_BOLTZMANN = 5.67e-8;
+
+  function calculateHZ(opts) {
+    const { stellarTemp, stellarRadius, orbitalPeriod } = opts;
+
+    const T = stellarTemp ?? 5778;
+    const R = stellarRadius ?? 1.0;
+
+    const L_sun = 3.828e26;
+    const L =
+      (4 *
+        Math.PI *
+        Math.pow(R * 6.957e8, 2) *
+        STEFAN_BOLTZMANN *
+        Math.pow(T, 4)) /
+      L_sun;
+
+    const S_inner_opt = 1.7763;
+    const S_outer_opt = 0.3207;
+
+    const S_inner_cons = 1.0385;
+    const S_outer_cons = 0.3507;
+
+    const innerAU = Math.sqrt(L / S_inner_opt);
+    const outerAU = Math.sqrt(L / S_outer_opt);
+    const conservativeInnerAU = Math.sqrt(L / S_inner_cons);
+    const conservativeOuterAU = Math.sqrt(L / S_outer_cons);
+
+    let planetAU = null;
+    if (orbitalPeriod) {
+      const M_star = Math.pow(L, 0.25);
+      const P_yr = orbitalPeriod / 365.25;
+      planetAU = Math.cbrt(M_star * P_yr * P_yr);
+    }
+
+    let classification = "unknown";
+    let classLabel = "Unknown";
+    let classColor = "var(--ds-gray-500)";
+
+    if (planetAU !== null) {
+      if (planetAU < innerAU * 0.85) {
+        classification = "too-hot";
+        classLabel = "Too hot";
+        classColor = "var(--ds-red-500)";
+      } else if (planetAU < conservativeInnerAU) {
+        classification = "inner-edge";
+        classLabel = "Inner edge";
+        classColor = "var(--ds-amber-500)";
+      } else if (planetAU <= conservativeOuterAU) {
+        classification = "habitable";
+        classLabel = "Habitable zone";
+        classColor = "var(--ds-green-500)";
+      } else if (planetAU <= outerAU * 1.15) {
+        classification = "outer-edge";
+        classLabel = "Outer edge";
+        classColor = "var(--ds-blue-400)";
+      } else {
+        classification = "too-cold";
+        classLabel = "Too cold";
+        classColor = "var(--ds-blue-600)";
+      }
+    }
+
+    return {
+      luminosity: L,
+      innerAU,
+      outerAU,
+      conservativeInnerAU,
+      conservativeOuterAU,
+      planetAU,
+      classification,
+      classLabel,
+      classColor,
+    };
+  }
+
+  function drawHZCanvas(canvas, hz, planetType, planetName) {
+    canvas.width = canvas.offsetWidth || 600;
+    const HZCanvasW = canvas.width;
+    const HZCanvasH = canvas.height;
+    const HZContext = canvas.getContext("2d");
+
+    HZContext.clearRect(0, 0, HZCanvasW, HZCanvasH);
+    HZContext.fillStyle = "#000";
+    HZContext.fillRect(0, 0, HZCanvasW, HZCanvasH);
+
+    const HZ_PAD_L = 60;
+    const HZ_PAD_R = 30;
+    const HZCenterY = HZCanvasH / 2;
+
+    const maxAU = Math.max(hz.outerAU * 1.5, (hz.planetAU ?? 0) * 1.3, 2);
+    const minAU = 0;
+
+    function xOf(au) {
+      return (
+        HZ_PAD_L +
+        ((au - minAU) / (maxAU - minAU)) * (HZCanvasW - HZ_PAD_L - HZ_PAD_R)
+      );
+    }
+
+    const starColor = getStarColor(hz.luminosity);
+    const starR = Math.min(Math.max(hz.luminosity * 3, 10), 28);
+
+    const starGlow = HZContext.createRadialGradient(
+      HZ_PAD_L - 10,
+      HZCenterY,
+      0,
+      HZ_PAD_L - 10,
+      HZCenterY,
+      starR * 3,
+    );
+    starGlow.addColorStop(0, starColor + "aa");
+    starGlow.addColorStop(0.5, starColor + "22");
+    starGlow.addColorStop(1, "transparent");
+    HZContext.fillStyle = starGlow;
+    HZContext.fillRect(0, 0, HZ_PAD_L + starR * 3, HZCanvasH);
+
+    HZContext.beginPath();
+    HZContext.arc(HZ_PAD_L - 10, HZCenterY, starR, 0, Math.PI * 2);
+    HZContext.fillStyle = starColor;
+    HZContext.fill();
+
+    const x_inner_opt = xOf(hz.innerAU);
+    const x_outer_opt = xOf(hz.outerAU);
+
+    const hzGradOpt = HZContext.createLinearGradient(
+      x_inner_opt,
+      0,
+      x_outer_opt,
+      0,
+    );
+    hzGradOpt.addColorStop(0, "rgba(34,197,94,0.05)");
+    hzGradOpt.addColorStop(0.5, "rgba(34,197,94,0.08)");
+    hzGradOpt.addColorStop(1, "rgba(34,197,94,0.03)");
+    HZContext.fillStyle = hzGradOpt;
+    HZContext.fillRect(
+      x_inner_opt,
+      HZCenterY - 38,
+      x_outer_opt - x_inner_opt,
+      76,
+    );
+
+    const x_inner_cons = xOf(hz.conservativeInnerAU);
+    const x_outer_cons = xOf(hz.conservativeOuterAU);
+
+    const hzGrad = HZContext.createLinearGradient(
+      x_inner_cons,
+      0,
+      x_outer_cons,
+      0,
+    );
+    hzGrad.addColorStop(0, "rgba(34,197,94,0.08)");
+    hzGrad.addColorStop(0.3, "rgba(34,197,94,0.22)");
+    hzGrad.addColorStop(0.7, "rgba(34,197,94,0.22)");
+    hzGrad.addColorStop(1, "rgba(34,197,94,0.08)");
+    HZContext.fillStyle = hzGrad;
+    HZContext.fillRect(
+      x_inner_cons,
+      HZCenterY - 28,
+      x_outer_cons - x_inner_cons,
+      56,
+    );
+
+    HZContext.strokeStyle = "rgba(34,197,94,0.4)";
+    HZContext.lineWidth = 1;
+    HZContext.setLineDash([4, 4]);
+    [x_inner_cons, x_outer_cons].forEach((x) => {
+      HZContext.beginPath();
+      HZContext.moveTo(x, HZCenterY - 40);
+      HZContext.lineTo(x, HZCenterY + 40);
+      HZContext.stroke();
+    });
+    HZContext.setLineDash([]);
+
+    HZContext.strokeStyle = "rgba(255,255,255,0.06)";
+    HZContext.lineWidth = 1;
+    HZContext.beginPath();
+    HZContext.moveTo(HZ_PAD_L - 10, HZCenterY);
+    HZContext.lineTo(HZCanvasW - HZ_PAD_R, HZCenterY);
+    HZContext.stroke();
+
+    const tickAUs = getTickValues(maxAU);
+    tickAUs.forEach((au) => {
+      const x = xOf(au);
+      HZContext.strokeStyle = "rgba(255,255,255,0.08)";
+      HZContext.lineWidth = 0.5;
+      HZContext.beginPath();
+      HZContext.moveTo(x, HZCenterY + 30);
+      HZContext.lineTo(x, HZCenterY + 38);
+      HZContext.stroke();
+      HZContext.fillStyle = "rgba(255,255,255,0.25)";
+      HZContext.font = "12px monospace";
+      HZContext.textAlign = "center";
+      HZContext.fillText(`${au} AU`, x, HZCenterY + 50);
+    });
+
+    const earthX = xOf(1.0);
+    if (earthX > HZ_PAD_L && earthX < HZCanvasW - HZ_PAD_R) {
+      HZContext.beginPath();
+      HZContext.arc(earthX, HZCenterY, 5, 0, Math.PI * 2);
+      HZContext.fillStyle = "#378ADD88";
+      HZContext.fill();
+      HZContext.fillStyle = "rgba(55,138,221,0.5)";
+      HZContext.font = "11px monospace";
+      HZContext.textAlign = "center";
+      HZContext.fillText("Earth", earthX, HZCenterY - 12);
+    }
+
+    if (hz.planetAU !== null) {
+      const PLANET_COLORS = {
+        rocky: "#8a7040",
+        "super-earth": "#3a9e75",
+        "sub-neptune": "#4a8ed4",
+        "neptune-like": "#3a7ed4",
+        "ocean-world": "#3a7ed4",
+        "hot-jupiter": "#E87C1E",
+        "gas-giant": "#8a5bc4",
+        unknown: "#505050",
+      };
+      const pc = PLANET_COLORS[planetType] ?? "#505050";
+      const px = xOf(hz.planetAU);
+      const inHz = hz.classification === "habitable";
+
+      const glow = HZContext.createRadialGradient(
+        px,
+        HZCenterY,
+        0,
+        px,
+        HZCenterY,
+        20,
+      );
+      glow.addColorStop(0, (inHz ? "#22c55e" : pc) + "44");
+      glow.addColorStop(1, "transparent");
+      HZContext.fillStyle = glow;
+      HZContext.beginPath();
+      HZContext.arc(px, HZCenterY, 20, 0, Math.PI * 2);
+      HZContext.fill();
+
+      HZContext.beginPath();
+      HZContext.arc(px, HZCenterY, 7, 0, Math.PI * 2);
+      HZContext.fillStyle = pc;
+      HZContext.fill();
+
+      HZContext.fillStyle = hz.classColor;
+      HZContext.font = "bold 10px monospace";
+      HZContext.textAlign = "center";
+      HZContext.fillText(hz.classLabel, px, HZCenterY - 18);
+
+      HZContext.fillStyle = "rgba(255,255,255,0.3)";
+      HZContext.font = "9px monospace";
+      HZContext.fillText(`${hz.planetAU.toFixed(3)} AU`, px, HZCenterY + 18);
+
+      HZContext.fillStyle = "rgba(255,255,255,0.5)";
+      HZContext.font = "10px monospace";
+      HZContext.fillText(planetName.split(" ")[0], px, HZCenterY - 30);
+    }
+
+    const legend = [
+      { color: "rgba(34,197,94,0.5)", label: "Conservative HZ" },
+      { color: "rgba(34,197,94,0.15)", label: "Optimistic HZ" },
+    ];
+    legend.forEach((legend, i) => {
+      const lx = HZCanvasW - 5 * HZ_PAD_R;
+      const ly = 14 + i * 16;
+      HZContext.fillStyle = legend.color;
+      HZContext.fillRect(lx, ly, 20, 8);
+      HZContext.fillStyle = "rgba(255,255,255,0.35)";
+      HZContext.font = "12px monospace";
+      HZContext.textAlign = "left";
+      HZContext.fillText(legend.label, lx + 26, ly + 7);
+    });
+
+    if (x_inner_cons > HZ_PAD_L + 20) {
+      HZContext.fillStyle = "rgba(34,197,94,0.5)";
+      HZContext.font = "11px monospace";
+      HZContext.textAlign = "center";
+      HZContext.fillText("Inner", x_inner_cons, HZCenterY - 46);
+    }
+    HZContext.fillStyle = "rgba(34,197,94,0.5)";
+    HZContext.font = "11px monospace";
+    HZContext.textAlign = "center";
+    HZContext.fillText("Outer", x_outer_cons, HZCenterY - 46);
+  }
+
+  function getStarColor(luminosity) {
+    if (luminosity > 10000) return "#9bb0ff";
+    if (luminosity > 100) return "#aabfff";
+    if (luminosity > 5) return "#fff4e8";
+    if (luminosity > 1.5) return "#ffdd90";
+    if (luminosity > 0.5) return "#ffb347";
+    return "#ff6b35";
+  }
+
+  function getTickValues(maxAU) {
+    const step = maxAU < 2 ? 0.25 : maxAU < 5 ? 0.5 : 1;
+    const ticks = [];
+    for (let v = 0; v <= maxAU; v += step) {
+      ticks.push(Math.round(v * 100) / 100);
+    }
+    return ticks;
+  }
+
+  function animateHZCanvas(canvas, hz, planetType, planetName) {
+    let frame = 0;
+    let animId;
+
+    function tick() {
+      drawHZCanvas(canvas, hz, planetType, planetName);
+
+      if (hz.planetAU !== null) {
+        const HZContext = canvas.getContext("2d");
+        const HZCanvasW = canvas.width;
+        const HZCanvasH = canvas.height;
+        const HZ_PAD_L = 60;
+        const HZ_PAD_R = 30;
+        const HZCenterY = HZCanvasH / 2;
+        const maxAU = Math.max(hz.outerAU * 1.5, hz.planetAU * 1.3, 2);
+
+        function xOf(au) {
+          return HZ_PAD_L + (au / maxAU) * (HZCanvasW - HZ_PAD_L - HZ_PAD_R);
+        }
+
+        const px = xOf(hz.planetAU);
+        const pulse = Math.sin(frame * 0.05) * 0.5 + 0.5;
+        const inHz = hz.classification === "habitable";
+        const pulseCol = inHz
+          ? `rgba(34,197,94,${pulse * 0.4})`
+          : `rgba(255,255,255,${pulse * 0.15})`;
+
+        HZContext.beginPath();
+        HZContext.arc(px, HZCenterY, 7 + pulse * 6, 0, Math.PI * 2);
+        HZContext.strokeStyle = pulseCol;
+        HZContext.lineWidth = 1;
+        HZContext.stroke();
+      }
+
+      frame++;
+      animId = requestAnimationFrame(tick);
+    }
+
+    tick();
+    return () => cancelAnimationFrame(animId);
+  }
+
+  const hz = calculateHZ({
+    stellarTemp: stellarTemp,
+    stellarRadius: stellarRadius,
+    orbitalPeriod: planetPeriod,
+  });
+
+  const HZCanvas = document.getElementById("hz-canvas");
+  if (HZCanvas) {
+    HZCanvas.width = HZCanvas.offsetWidth || 600;
+    animateHZCanvas(HZCanvas, hz, planetType, planetName);
+  }
+
+  const hzBadge = document.getElementById("hz-badge");
+  if (hzBadge) {
+    hzBadge.textContent = hz.classLabel;
+    hzBadge.style.color = hz.classColor;
+    hzBadge.style.borderColor = hz.classColor + "66";
+    hzBadge.style.background = hz.classColor + "11";
+  }
+
+  const setEl = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+
+  setEl("hz-luminosity", `${hz.luminosity.toFixed(3)} L☉`);
+  setEl("hz-planet-au", hz.planetAU ? `${hz.planetAU.toFixed(4)} AU` : "—");
+  setEl("hz-inner", `${hz.conservativeInnerAU.toFixed(3)} AU`);
+  setEl("hz-outer", `${hz.conservativeOuterAU.toFixed(3)} AU`);
 </script>
