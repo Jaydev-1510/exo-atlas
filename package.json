@@ -30,6 +30,6 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "supabase": "^2.95.1"
+    "supabase": "^2.95.3"
   }
 }
