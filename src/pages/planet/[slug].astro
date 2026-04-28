@@ -106,18 +106,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           id="share-btn"
           class="flex items-center gap-2 text-xs border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-500 transition-colors"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          >
-            <path d="M6 1v7M3 5l3 3 3-3M1 9v1a1 1 0 001 1h8a1 1 0 001-1V9"
-            ></path>
-          </svg>
+          <Icon glyph="share-alt" />
           Share card
         </button>
       </div>
@@ -361,6 +350,73 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
         </div>
       </div>
     </section>
+    <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <div class="font-mono text-xs text-gray-600 uppercase tracking-widest">
+          Atmosphere
+        </div>
+        <div class="flex items-center gap-2">
+          <span
+            id="atm-badge"
+            class="text-xs px-3 py-1 rounded-full border"
+            style="border-color:var(--ds-gray-400);color:var(--ds-gray-600)"
+          >
+            —
+          </span>
+          <span
+            id="atm-breathable"
+            class="text-xs px-3 py-1 rounded-full"
+            style="display:none"
+          >
+          </span>
+        </div>
+      </div>
+
+      <p
+        id="atm-description"
+        class="text-sm text-gray-600 leading-relaxed mb-5"
+      >
+      </p>
+
+      <div class="grid grid-cols-2 gap-3 mb-5">
+        <div
+          class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+        >
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Surface pressure
+          </div>
+          <div id="atm-pressure" class="font-mono text-sm text-gray-1000">
+            —
+          </div>
+        </div>
+        <div
+          class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
+        >
+          <div
+            style="font-size:10px;text-transform:uppercase;letter-spacing:.07em"
+            class="text-gray-500 mb-1"
+          >
+            Breathable
+          </div>
+          <div
+            id="atm-breathable-stat"
+            class="font-mono text-sm text-gray-1000"
+          >
+            —
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="font-mono text-xs text-gray-500 uppercase tracking-widest mb-3"
+      >
+        Estimated composition
+      </div>
+      <div id="atm-composition" class="space-y-2"></div>
+    </div>
     <section
       class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6"
     >
@@ -1717,4 +1773,336 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
   setEl("hz-planet-au", hz.planetAU ? `${hz.planetAU.toFixed(4)} AU` : "—");
   setEl("hz-inner", `${hz.conservativeInnerAU.toFixed(3)} AU`);
   setEl("hz-outer", `${hz.conservativeOuterAU.toFixed(3)} AU`);
+
+  function estimateAtmosphere(opts) {
+    const { radius, mass, temp, planetType } = opts;
+
+    const r = radius ?? 1;
+    const m = mass ?? Math.pow(r, 2.06);
+    const t = temp ?? 255;
+    const g = m / (r * r);
+
+    const retentionScore = g * (300 / Math.max(t, 100));
+
+    if (planetType === "gas-giant" || r > 6) {
+      return gasGiant();
+    }
+
+    if (planetType === "hot-jupiter" || (r > 4 && t > 800)) {
+      return hotJupiter(t);
+    }
+
+    if (
+      planetType === "sub-neptune" ||
+      planetType === "neptune-like" ||
+      (r > 2.5 && r < 6)
+    ) {
+      return hydrogenEnvelope(r, t);
+    }
+
+    if (
+      planetType === "ocean-world" ||
+      (r > 1.2 && r < 2.5 && t > 200 && t < 400)
+    ) {
+      return waterWorld(t);
+    }
+
+    if (retentionScore < 0.3 || t > 700) {
+      return noAtmosphere();
+    }
+
+    if (retentionScore < 0.6) {
+      return thinRocky(t);
+    }
+
+    if (t > 340 && t < 700) {
+      return co2Dominated(t, g);
+    }
+
+    if (t >= 200 && t <= 340 && retentionScore > 0.7) {
+      return earthLike(g, t);
+    }
+
+    if (t < 200) {
+      return co2Dominated(t, g);
+    }
+
+    return thinRocky(t);
+  }
+
+  function noAtmosphere() {
+    return {
+      class: "none",
+      label: "No atmosphere",
+      description:
+        "Too small or too hot to retain significant gas. Surface exposed directly to stellar radiation.",
+      pressure: "< 0.001 atm",
+      breathable: false,
+      color: "#888",
+      hazeColor: "transparent",
+      hazeOpacity: 0,
+      hazeThickness: 0,
+      composition: [
+        { molecule: "Trace Na", pct: 60, color: "#aaa" },
+        { molecule: "Trace K", pct: 40, color: "#999" },
+      ],
+    };
+  }
+
+  function thinRocky(temp) {
+    return {
+      class: "thin-rocky",
+      label: "Thin rocky atmosphere",
+      description:
+        "Tenuous atmosphere, likely volcanic outgassing. Similar to Mars — not breathable but provides some protection.",
+      pressure: "0.001–0.1 atm",
+      breathable: false,
+      color: "#c8a878",
+      hazeColor: "#c8a87844",
+      hazeOpacity: 0.12,
+      hazeThickness: 0.05,
+      composition:
+        temp > 300
+          ? [
+              { molecule: "CO₂", pct: 95, color: "#e87c1e" },
+              { molecule: "N₂", pct: 3, color: "#4a8ed4" },
+              { molecule: "SO₂", pct: 2, color: "#ffdd90" },
+            ]
+          : [
+              { molecule: "CO₂", pct: 80, color: "#e87c1e" },
+              { molecule: "N₂", pct: 15, color: "#4a8ed4" },
+              { molecule: "Ar", pct: 5, color: "#8a8a8a" },
+            ],
+    };
+  }
+
+  function earthLike(g, temp) {
+    const o2 = Math.min(25, Math.max(15, 21 * g));
+    return {
+      class: "earth-like",
+      label: "Earth-like atmosphere",
+      description:
+        "Nitrogen-oxygen atmosphere within habitable conditions. Surface liquid water possible. Potentially breathable.",
+      pressure: `${(0.8 + g * 0.4).toFixed(1)}–${(1.0 + g * 0.6).toFixed(1)} atm`,
+      breathable: true,
+      color: "#4a8ed4",
+      hazeColor: "#4a8ed466",
+      hazeOpacity: 0.2,
+      hazeThickness: 0.12,
+      composition: [
+        { molecule: "N₂", pct: Math.round(78 - (o2 - 21)), color: "#4a8ed4" },
+        { molecule: "O₂", pct: Math.round(o2), color: "#3a9e75" },
+        { molecule: "Ar", pct: 1, color: "#8a8a8a" },
+        { molecule: "CO₂", pct: 0.04, color: "#e87c1e" },
+        { molecule: "H₂O", pct: 1, color: "#85B7EB" },
+      ],
+    };
+  }
+
+  function co2Dominated(temp, g) {
+    const hot = temp > 340;
+    return {
+      class: "co2-dominated",
+      label: hot ? "Runaway greenhouse" : "CO₂ atmosphere",
+      description: hot
+        ? "Dense CO₂ envelope trapping heat in a runaway greenhouse effect. Surface temperatures extreme — similar to Venus."
+        : "Carbon dioxide dominated atmosphere. Thick enough to provide some warming but not breathable without equipment.",
+      pressure: hot ? "50–100 atm" : "1–10 atm",
+      breathable: false,
+      color: "#e87c1e",
+      hazeColor: "#e87c1e55",
+      hazeOpacity: hot ? 0.3 : 0.18,
+      hazeThickness: hot ? 0.18 : 0.1,
+      composition: [
+        { molecule: "CO₂", pct: 96, color: "#e87c1e" },
+        { molecule: "N₂", pct: 3.5, color: "#4a8ed4" },
+        { molecule: "SO₂", pct: 0.5, color: "#ffdd90" },
+      ],
+    };
+  }
+
+  function waterWorld(temp) {
+    const steam = temp > 320;
+    return {
+      class: "water-steam",
+      label: steam ? "Steam atmosphere" : "Water-rich atmosphere",
+      description: steam
+        ? "High temperatures have vaporised surface water into a dense steam atmosphere. Extreme humidity and pressure."
+        : "Water-rich atmosphere with significant vapour. Global ocean likely beneath thick cloud cover.",
+      pressure: steam ? "10–100 atm" : "1–5 atm",
+      breathable: false,
+      color: "#85B7EB",
+      hazeColor: "#85B7EB55",
+      hazeOpacity: 0.25,
+      hazeThickness: 0.15,
+      composition: [
+        { molecule: "H₂O", pct: steam ? 80 : 40, color: "#85B7EB" },
+        { molecule: "CO₂", pct: steam ? 15 : 30, color: "#e87c1e" },
+        { molecule: "N₂", pct: steam ? 5 : 30, color: "#4a8ed4" },
+      ],
+    };
+  }
+
+  function hydrogenEnvelope(radius, temp) {
+    return {
+      class: "hydrogen-envelope",
+      label: "Hydrogen envelope",
+      description:
+        "Thick hydrogen and helium envelope — a mini-Neptune. No solid surface to stand on. Increasing pressure with depth.",
+      pressure: "> 1000 atm",
+      breathable: false,
+      color: "#8a5bc4",
+      hazeColor: "#8a5bc455",
+      hazeOpacity: 0.22,
+      hazeThickness: 0.2,
+      composition: [
+        { molecule: "H₂", pct: 80, color: "#AFA9EC" },
+        { molecule: "He", pct: 17, color: "#c084fc" },
+        { molecule: "CH₄", pct: 2, color: "#85B7EB" },
+        { molecule: "NH₃", pct: 1, color: "#ffdd90" },
+      ],
+    };
+  }
+
+  function gasGiant() {
+    return {
+      class: "thick-gas",
+      label: "Gas giant atmosphere",
+      description:
+        "Massive hydrogen-helium atmosphere with no solid surface. Bands of clouds at different pressure levels.",
+      pressure: "> 100,000 atm",
+      breathable: false,
+      color: "#E87C1E",
+      hazeColor: "#E87C1E44",
+      hazeOpacity: 0.28,
+      hazeThickness: 0.25,
+      composition: [
+        { molecule: "H₂", pct: 89, color: "#AFA9EC" },
+        { molecule: "He", pct: 10, color: "#c084fc" },
+        { molecule: "CH₄", pct: 0.3, color: "#85B7EB" },
+        { molecule: "NH₃", pct: 0.3, color: "#ffdd90" },
+      ],
+    };
+  }
+
+  function hotJupiter(temp) {
+    return {
+      class: "thick-gas",
+      label: "Inflated hot Jupiter",
+      description: `Superheated atmosphere at ~${Math.round(temp)} K. Tidally locked — permanent day/night sides with extreme wind speeds.`,
+      pressure: "> 100,000 atm",
+      breathable: false,
+      color: "#E87C1E",
+      hazeColor: "#E87C1E55",
+      hazeOpacity: 0.32,
+      hazeThickness: 0.28,
+      composition: [
+        { molecule: "H₂", pct: 85, color: "#AFA9EC" },
+        { molecule: "He", pct: 13, color: "#c084fc" },
+        { molecule: "Na", pct: 1, color: "#ffdd90" },
+        { molecule: "K", pct: 1, color: "#FAC775" },
+      ],
+    };
+  }
+
+  function drawAtmosphereRing(canvas, atm, planetType, radius) {
+    const atmContext = canvas.getContext("2d");
+    const size = canvas.width;
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const pr = Math.min(Math.max(radius * (size / 8), size * 0.1), size * 0.44);
+
+    if (atm.hazeThickness === 0 || atm.hazeOpacity === 0) return;
+
+    const hazeR = pr * (1 + atm.hazeThickness);
+
+    const glow = atmContext.createRadialGradient(
+      centerX,
+      centerY,
+      pr,
+      centerX,
+      centerY,
+      hazeR * 1.3,
+    );
+    glow.addColorStop(0, atm.hazeColor);
+    glow.addColorStop(
+      0.6,
+      atm.hazeColor.replace("55", "22").replace("44", "18").replace("66", "28"),
+    );
+    glow.addColorStop(1, "transparent");
+    atmContext.beginPath();
+    atmContext.arc(centerX, centerY, hazeR * 1.3, 0, Math.PI * 2);
+    atmContext.fillStyle = glow;
+    atmContext.fill();
+
+    atmContext.beginPath();
+    atmContext.arc(centerX, centerY, hazeR, 0, Math.PI * 2);
+    atmContext.strokeStyle = atm.hazeColor;
+    atmContext.lineWidth = pr * atm.hazeThickness * 0.6;
+    atmContext.globalAlpha = atm.hazeOpacity;
+    atmContext.stroke();
+    atmContext.globalAlpha = 1;
+  }
+
+  const atm = estimateAtmosphere({
+    radius: planetRadius,
+    mass: planetMass,
+    temp: planetTemp,
+    planetType: planetType,
+  });
+
+  const planetCvs = document.getElementById("planet-canvas");
+  if (planetCvs) {
+    drawAtmosphereRing(planetCvs, atm, planetType, planetRadius);
+  }
+
+  const atmBadge = document.getElementById("atm-badge");
+  if (atmBadge) {
+    atmBadge.textContent = atm.label;
+    atmBadge.style.color = atm.color;
+    atmBadge.style.borderColor = atm.color + "66";
+    atmBadge.style.background = atm.color + "11";
+  }
+
+  const atmBreathable = document.getElementById("atm-breathable");
+  if (atmBreathable) {
+    atmBreathable.style.display = "inline-block";
+    atmBreathable.textContent = atm.breathable
+      ? "✓ Potentially breathable"
+      : "✗ Not breathable";
+    atmBreathable.style.background = atm.breathable
+      ? "var(--ds-teal-200)"
+      : "var(--ds-red-200)";
+    atmBreathable.style.color = atm.breathable
+      ? "var(--ds-teal-800)"
+      : "var(--ds-red-800)";
+  }
+
+  const setElement = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+
+  setElement("atm-description", atm.description);
+  setElement("atm-pressure", atm.pressure);
+  setElement("atm-breathable-stat", atm.breathable ? "Possibly yes" : "No");
+
+  const compoElement = document.getElementById("atm-composition");
+  if (compoElement) {
+    compoElement.innerHTML = atm.composition
+      .map(
+        (compo) => `
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px">
+          <span style="font-family:var(--font-geist-mono);font-size:11px;color:var(--ds-gray-700)">${compo.molecule}</span>
+          <span style="font-family:var(--font-geist-mono);font-size:11px;color:var(--ds-gray-600)">${compo.pct < 1 ? compo.pct.toFixed(2) : compo.pct}%</span>
+        </div>
+        <div style="height:4px;background:var(--ds-gray-300);border-radius:2px;overflow:hidden">
+          <div style="width:${Math.min(compo.pct, 100)}%;height:100%;border-radius:2px;background:${compo.color};transition:width .6s ease"></div>
+        </div>
+      </div>
+    `,
+      )
+      .join("");
+  }
 </script>
