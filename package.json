@@ -14,17 +14,17 @@
     "lint": "bunx tsc --noEmit"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.8",
+    "@astrojs/check": "^0.9.9",
     "@astrojs/react": "^5.0.4",
-    "@astrojs/vercel": "^10.0.5",
+    "@astrojs/vercel": "^10.0.6",
     "@resvg/resvg-js": "^2.6.2",
     "@supabase/ssr": "^0.10.2",
-    "@supabase/supabase-js": "^2.104.1",
+    "@supabase/supabase-js": "^2.105.1",
     "@tailwindcss/vite": "^4.2.4",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "and": "^0.0.3",
-    "astro": "^6.1.9",
+    "astro": "^6.1.10",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
     "react": "^19.2.5",
@@ -35,6 +35,6 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "supabase": "^2.95.3"
+    "supabase": "^2.95.6"
   }
 }
