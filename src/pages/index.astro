@@ -219,7 +219,7 @@ const today = new Date().toLocaleDateString("en-US", {
                     <dt class="text-[10px] text-gray-500 mb-1 uppercase tracking-[0.07em]">
                       {measure.label}
                     </dt>
-                    <dd class="font-mono text-sm text-gray-1000">
+                    <dd class="font-mono text-sm text-primary">
                       {measure.value}
                     </dd>
                   </div>
@@ -291,7 +291,7 @@ const today = new Date().toLocaleDateString("en-US", {
           href={c.href}
           class="bg-background-200 border border-gray-300 rounded-xl p-5 hover:border-gray-500 transition-colors block"
         >
-          <div class="text-sm font-medium text-gray-1000 mb-1">{c.label}</div>
+          <div class="text-sm font-medium text-primary mb-1">{c.label}</div>
           <div class="text-xs text-gray-600">{c.sub}</div>
         </a>
       ))

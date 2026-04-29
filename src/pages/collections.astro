@@ -24,7 +24,7 @@ export const prerender = true;
       <div class="flex items-center justify-center">
         <a
           href="/atlas"
-          class="group text-sm text-secondary flex gap-1 items-center text-center underline hover:text-gray-1000 transition-colors duration-300"
+          class="group text-sm text-secondary flex gap-1 items-center text-center underline hover:text-primary transition-colors duration-300"
           >Browse the atlas <Icon
             glyph="arrow-right"
             class="h-full w-auto group-hover:translate-x-2 group-hover:scale-110 transition-all duration-300"
@@ -86,7 +86,7 @@ export const prerender = true;
         "background:var(--ds-background-200);border:0.5px solid var(--ds-gray-300);border-radius:12px;padding:1rem;position:relative";
       card.innerHTML = `
       <a href="/planet/${slug}" style="display:block;text-decoration:none;margin-bottom:12px">
-        <div style="font-size:.875rem;font-weight:500;color:var(--ds-gray-1000);margin-bottom:2px">${planet.name}</div>
+        <div style="font-size:.875rem;font-weight:500;color:var(--primary);margin-bottom:2px">${planet.name}</div>
         <div style="font-family:var(--font-geist-mono);font-size:.75rem;color:var(--ds-gray-600)">${planet.host_star}</div>
       </a>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
