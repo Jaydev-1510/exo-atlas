@@ -109,6 +109,58 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           <Icon glyph="share-alt" />
           Share card
         </button>
+        <button
+          id="compare-btn"
+          class="flex items-center gap-2 text-xs border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-500 transition-colors"
+        >
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+          >
+            <path d="M1 6h10M7 2l4 4-4 4M5 2L1 6l4 4"></path>
+          </svg>
+          Compare
+        </button>
+
+        <div
+          id="compare-modal"
+          style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center"
+        >
+          <div
+            style="background:var(--ds-background-100);border:0.5px solid var(--ds-gray-300);border-radius:16px;padding:28px;width:min(480px,90vw)"
+          >
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px"
+            >
+              <div
+                style="font-family:var(--font-geist-mono);font-size:12px;color:var(--ds-gray-600);text-transform:uppercase;letter-spacing:.08em"
+              >
+                Compare with...
+              </div>
+              <button
+                id="close-compare-modal"
+                style="color:var(--ds-gray-600);background:none;border:none;cursor:pointer;font-size:16px"
+                >✕</button
+              >
+            </div>
+            <input
+              id="compare-search-input"
+              type="text"
+              placeholder="Search planet name..."
+              style="width:100%;background:var(--ds-background-200);border:0.5px solid var(--ds-gray-300);border-radius:8px;padding:10px 14px;font-size:13px;color:var(--primary);outline:none;margin-bottom:10px"
+            />
+            <div
+              id="compare-results"
+              style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px"
+            >
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -309,9 +361,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
             Luminosity
           </div>
-          <div id="hz-luminosity" class="font-mono text-sm text-gray-1000">
-            —
-          </div>
+          <div id="hz-luminosity" class="font-mono text-sm text-primary">—</div>
         </div>
         <div
           class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
@@ -322,9 +372,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
             Planet distance
           </div>
-          <div id="hz-planet-au" class="font-mono text-sm text-gray-1000">
-            —
-          </div>
+          <div id="hz-planet-au" class="font-mono text-sm text-primary">—</div>
         </div>
         <div
           class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
@@ -335,7 +383,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
             HZ inner edge
           </div>
-          <div id="hz-inner" class="font-mono text-sm text-gray-1000">—</div>
+          <div id="hz-inner" class="font-mono text-sm text-primary">—</div>
         </div>
         <div
           class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
@@ -346,7 +394,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
             HZ outer edge
           </div>
-          <div id="hz-outer" class="font-mono text-sm text-gray-1000">—</div>
+          <div id="hz-outer" class="font-mono text-sm text-primary">—</div>
         </div>
       </div>
     </section>
@@ -388,9 +436,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
             Surface pressure
           </div>
-          <div id="atm-pressure" class="font-mono text-sm text-gray-1000">
-            —
-          </div>
+          <div id="atm-pressure" class="font-mono text-sm text-primary">—</div>
         </div>
         <div
           class="bg-background-100 border border-gray-200 rounded-lg px-3 py-2.5"
@@ -401,10 +447,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           >
             Breathable
           </div>
-          <div
-            id="atm-breathable-stat"
-            class="font-mono text-sm text-gray-1000"
-          >
+          <div id="atm-breathable-stat" class="font-mono text-sm text-primary">
             —
           </div>
         </div>
@@ -595,7 +638,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
                   href={`/planet/${slug}`}
                   class="bg-background-200 border border-gray-300 rounded-xl p-3 hover:border-gray-500 transition-colors block"
                 >
-                  <div class="text-xs font-medium text-gray-1000 mb-1 truncate">
+                  <div class="text-xs font-medium text-primary mb-1 truncate">
                     {planet.name}
                   </div>
                   <div class="font-mono text-xs text-gray-600 mb-2 truncate">
@@ -690,6 +733,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     planetEsi: planet.esi_score ?? null,
     planetHabPct: planet.habitability_pct ?? null,
     planetDistanceLy: planet.distance_ly ?? null,
+    planetSlug: slug,
   }}
 >
   const COLORS = {
@@ -1797,7 +1841,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
       planetType === "neptune-like" ||
       (r > 2.5 && r < 6)
     ) {
-      return hydrogenEnvelope(r, t);
+      return hydrogenEnvelope();
     }
 
     if (
@@ -1816,15 +1860,15 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     }
 
     if (t > 340 && t < 700) {
-      return co2Dominated(t, g);
+      return co2Dominated(t);
     }
 
     if (t >= 200 && t <= 340 && retentionScore > 0.7) {
-      return earthLike(g, t);
+      return earthLike(g);
     }
 
     if (t < 200) {
-      return co2Dominated(t, g);
+      return co2Dominated(t);
     }
 
     return thinRocky(t);
@@ -1876,7 +1920,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     };
   }
 
-  function earthLike(g, temp) {
+  function earthLike(g) {
     const o2 = Math.min(25, Math.max(15, 21 * g));
     return {
       class: "earth-like",
@@ -1899,7 +1943,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     };
   }
 
-  function co2Dominated(temp, g) {
+  function co2Dominated(temp) {
     const hot = temp > 340;
     return {
       class: "co2-dominated",
@@ -1943,7 +1987,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
     };
   }
 
-  function hydrogenEnvelope(radius, temp) {
+  function hydrogenEnvelope() {
     return {
       class: "hydrogen-envelope",
       label: "Hydrogen envelope",
@@ -2105,4 +2149,66 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
       )
       .join("");
   }
+
+  const compareBtn = document.getElementById("compare-btn");
+  const compareModal = document.getElementById("compare-modal");
+  const closeModal = document.getElementById("close-compare-modal");
+  const compareInput = document.getElementById("compare-search-input");
+  const compareRes = document.getElementById("compare-results");
+
+  compareBtn?.addEventListener("click", () => {
+    compareModal.style.display = "flex";
+    compareInput.focus();
+  });
+
+  closeModal?.addEventListener("click", () => {
+    compareModal.style.display = "none";
+  });
+
+  compareModal?.addEventListener("click", (e) => {
+    if (e.target === compareModal) compareModal.style.display = "none";
+  });
+
+  let searchTimer;
+  compareInput?.addEventListener("input", () => {
+    clearTimeout(searchTimer);
+    const q = compareInput.value.trim();
+    if (!q) {
+      compareRes.innerHTML = "";
+      return;
+    }
+
+    searchTimer = setTimeout(async () => {
+      const res = await fetch(
+        `/api/planets?q=${encodeURIComponent(q)}&limit=8`,
+      );
+      const json = await res.json();
+
+      compareRes.innerHTML = "";
+      json.data?.forEach((p) => {
+        const row = document.createElement("button");
+        row.style.cssText =
+          "display:flex;align-items:center;justify-content:space-between;width:100%;padding:10px 12px;border-radius:8px;border:0.5px solid var(--ds-gray-300);background:var(--ds-background-200);cursor:pointer;text-align:left;transition:border-color .15s";
+        row.onmouseenter = () => (row.style.borderColor = "var(--ds-gray-500)");
+        row.onmouseleave = () => (row.style.borderColor = "var(--ds-gray-300)");
+        row.innerHTML = `
+          <div>
+            <div style="font-size:13px;font-weight:500;color:var(--primary)">${p.name}</div>
+            <div style="font-family:var(--font-geist-mono);font-size:11px;color:var(--ds-gray-600);margin-top:2px">${p.host_star} · ${p.planet_type ?? "unknown"}</div>
+          </div>
+          <div style="font-family:var(--font-geist-mono);font-size:11px;color:var(--ds-green-600)">${p.habitability_pct ?? 0}%</div>
+        `;
+        row.addEventListener("click", () => {
+          const targetSlug = p.name.toLowerCase().replace(/\s+/g, "-");
+          window.location.href = `/compare?a=${planetSlug}&b=${targetSlug}`;
+        });
+        compareRes.appendChild(row);
+      });
+
+      if (!json.data?.length) {
+        compareRes.innerHTML =
+          '<div style="text-align:center;color:var(--ds-gray-600);font-size:13px;padding:16px">No planets found</div>';
+      }
+    }, 250);
+  });
 </script>
