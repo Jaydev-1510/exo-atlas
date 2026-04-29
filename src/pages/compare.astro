@@ -1,0 +1,508 @@
+---
+import Layout from "@/layouts/base.astro";
+import Icon from "@/components/icons.astro";
+import { supabase } from "@/lib/supabase";
+
+export const prerender = false;
+
+const sp = Astro.url.searchParams;
+const slugA = sp.get("a") ?? "";
+const slugB = sp.get("b") ?? "";
+
+const [{ data: rowsA }, { data: rowsB }] = await Promise.all([
+  supabase.rpc("get_planet_by_slug", { p_name: slugA }),
+  supabase.rpc("get_planet_by_slug", { p_name: slugB }),
+]);
+
+const a = rowsA?.[0] ?? null;
+const b = rowsB?.[0] ?? null;
+
+const fmt = (v: number | null, d = 2) =>
+  v != null ? Number(v).toFixed(d) : "—";
+
+const PLANET_COLORS: Record<string, string> = {
+  rocky: "#8a7040",
+  "super-earth": "#3a9e75",
+  "sub-neptune": "#4a8ed4",
+  "neptune-like": "#3a7ed4",
+  "ocean-world": "#3a7ed4",
+  "hot-jupiter": "#E87C1E",
+  "gas-giant": "#8a5bc4",
+  unknown: "#505050",
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  rocky: "Rocky",
+  "super-earth": "Super-earth",
+  "sub-neptune": "Sub-neptune",
+  "neptune-like": "Neptune-like",
+  "ocean-world": "Ocean world",
+  "hot-jupiter": "Hot Jupiter",
+  "gas-giant": "Gas giant",
+  unknown: "Unknown",
+};
+
+type Metric = {
+  label: string;
+  aVal: string;
+  bVal: string;
+  aRaw: number | null;
+  bRaw: number | null;
+  higherIsBetter: boolean;
+};
+
+const metrics: Metric[] =
+  a && b
+    ? [
+        {
+          label: "Radius (R⊕)",
+          aVal: fmt(a.radius_earth),
+          bVal: fmt(b.radius_earth),
+          aRaw: a.radius_earth,
+          bRaw: b.radius_earth,
+          higherIsBetter: false,
+        },
+        {
+          label: "Mass (M⊕)",
+          aVal: fmt(a.mass_earth),
+          bVal: fmt(b.mass_earth),
+          aRaw: a.mass_earth,
+          bRaw: b.mass_earth,
+          higherIsBetter: false,
+        },
+        {
+          label: "ESI score",
+          aVal: fmt(a.esi_score, 3),
+          bVal: fmt(b.esi_score, 3),
+          aRaw: a.esi_score,
+          bRaw: b.esi_score,
+          higherIsBetter: true,
+        },
+        {
+          label: "Habitability %",
+          aVal: `${a.habitability_pct ?? 0}%`,
+          bVal: `${b.habitability_pct ?? 0}%`,
+          aRaw: a.habitability_pct,
+          bRaw: b.habitability_pct,
+          higherIsBetter: true,
+        },
+        {
+          label: "Eq. temp (K)",
+          aVal: fmt(a.eq_temperature, 0),
+          bVal: fmt(b.eq_temperature, 0),
+          aRaw: a.eq_temperature,
+          bRaw: b.eq_temperature,
+          higherIsBetter: false,
+        },
+        {
+          label: "Orbital period",
+          aVal: a.orbital_period ? `${fmt(a.orbital_period, 1)}d` : "—",
+          bVal: b.orbital_period ? `${fmt(b.orbital_period, 1)}d` : "—",
+          aRaw: a.orbital_period,
+          bRaw: b.orbital_period,
+          higherIsBetter: false,
+        },
+        {
+          label: "Distance (ly)",
+          aVal: fmt(a.distance_ly, 1),
+          bVal: fmt(b.distance_ly, 1),
+          aRaw: a.distance_ly,
+          bRaw: b.distance_ly,
+          higherIsBetter: false,
+        },
+        {
+          label: "Discovery year",
+          aVal: a.discovery_year?.toString() ?? "—",
+          bVal: b.discovery_year?.toString() ?? "—",
+          aRaw: a.discovery_year,
+          bRaw: b.discovery_year,
+          higherIsBetter: false,
+        },
+      ]
+    : [];
+
+function winner(m: Metric): "a" | "b" | "tie" {
+  if (m.aRaw == null || m.bRaw == null) return "tie";
+  if (Math.abs(m.aRaw - m.bRaw) < 0.001) return "tie";
+  if (m.higherIsBetter) return m.aRaw > m.bRaw ? "a" : "b";
+  return m.aRaw < m.bRaw ? "a" : "b";
+}
+---
+
+<Layout
+  title={a && b
+    ? `${a.name} vs ${b.name} — Exoplanet Atlas`
+    : "Compare planets — Exoplanet Atlas"}
+>
+  <section class="max-w-5xl mx-auto px-4 pb-10">
+    <header class="flex items-center justify-center py-10 min-h-[12em]">
+      <h1
+        class="absolute text-center font-pixel-line tracking-tighter text-[10em] select-none bg-linear-0 from-black to-primary text-transparent bg-clip-text whitespace-nowrap leading-40"
+      >
+        Compare Planets.
+      </h1>
+      <p class="font-mono text-md text-secondary mt-[8em] z-20">
+        Comapre from thousands of planet with AI
+      </p>
+    </header>
+    <div class="flex items-baseline justify-between mb-8">
+      <a
+        href="/atlas"
+        rel="up"
+        class="text-md text-gray-600 hover:text-secondary transition-colors flex gap-1 items-center group"
+        ><Icon
+          glyph="arrow-left"
+          class="group-hover:-translate-x-2 group-hover:scale-110 transition-all duration-300"
+        />Atlas</a
+      >
+    </div>
+
+    {
+      (!a || !b) && (
+        <div class="bg-background-200 border border-gray-300 rounded-xl p-8 text-center mb-8">
+          <p class="text-sm text-gray-600 mb-2">
+            Select two planets to compare.
+          </p>
+          <p class="text-xs text-gray-500 font-mono">
+            Use the "Compare with..." button on any passport page.
+          </p>
+        </div>
+      )
+    }
+
+    {
+      a && b && (
+        <div>
+          <div class="grid grid-cols-2 gap-4 mb-6">
+            {[a, b].map((planet) => {
+              const pType = planet.planet_type ?? "unknown";
+              const color = PLANET_COLORS[pType] ?? "#505050";
+              const habColor =
+                (planet.habitability_pct ?? 0) >= 70
+                  ? "var(--ds-green-500)"
+                  : (planet.habitability_pct ?? 0) >= 40
+                    ? "var(--ds-amber-500)"
+                    : "var(--ds-red-500)";
+              return (
+                <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+                  <div
+                    class="flex items-center justify-center mb-5"
+                    style="height:120px;background:var(--ds-background-100);border-radius:8px"
+                  >
+                    <canvas
+                      class="compare-canvas"
+                      width="100"
+                      height="100"
+                      data-type={pType}
+                      data-radius={planet.radius_earth ?? 1}
+                    />
+                  </div>
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <div>
+                      <div class="text-base font-medium text-primary">
+                        {planet.name}
+                      </div>
+                      <div class="font-mono text-xs text-gray-600 mt-0.5">
+                        {planet.host_star}
+                      </div>
+                    </div>
+                    <span
+                      style={`font-size:.65rem;font-weight:500;padding:.2rem .6rem;border-radius:999px;background:${color}18;color:${color};border:1px solid ${color}44`}
+                    >
+                      {TYPE_LABELS[pType] ?? "Unknown"}
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-2 mt-3">
+                    <div class="flex-1 h-1 bg-gray-300 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full"
+                        style={`width:${planet.habitability_pct ?? 0}%;background:${habColor}`}
+                      />
+                    </div>
+                    <span class="font-mono text-xs text-gray-600">
+                      {planet.habitability_pct ?? 0}%
+                    </span>
+                  </div>
+
+                  <a
+                    href={`/planet/${planet.name.toLowerCase().replace(/\s+/g, "-")}`}
+                    class="group text-sm text-secondary hover:text-primary transition-colors flex items-center justify-center gap-1 duration-200 mt-4 text-center border border-gray-300 rounded-lg py-2 hover:border-gray-500"
+                  >
+                    View full passport
+                    <Icon
+                      glyph="arrow-right"
+                      class="h-full w-auto group-hover:translate-x-2 group-hover:scale-110 transition-all duration-300"
+                    />
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+
+          <div class="bg-background-200 border border-gray-300 rounded-xl overflow-hidden mb-6">
+            <div class="grid grid-cols-3 border-b border-gray-300 px-4 py-2">
+              <div class="font-mono text-xs text-gray-600 uppercase tracking-widest">
+                {a.name}
+              </div>
+              <div class="font-mono text-xs text-gray-500 uppercase tracking-widest text-center">
+                Metric
+              </div>
+              <div class="font-mono text-xs text-gray-600 uppercase tracking-widest text-right">
+                {b.name}
+              </div>
+            </div>
+            {metrics.map((metric) => {
+              const win = winner(metric);
+              return (
+                <div class="grid grid-cols-3 items-center px-4 py-3 border-b border-gray-200 last:border-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-mono text-sm text-primary">
+                      {metric.aVal}
+                    </span>
+                    {win === "a" && (
+                      <span class="text-green-600 text-sm">
+                        <Icon glyph="arrow-up" />
+                      </span>
+                    )}
+                    {win === "b" && (
+                      <span class="text-red-600 text-sm">
+                        <Icon glyph="arrow-down" />
+                      </span>
+                    )}
+                  </div>
+                  <div class="font-mono text-xs text-gray-500 text-center">
+                    {metric.label}
+                  </div>
+                  <div class="flex items-center justify-end gap-2">
+                    {win === "b" && (
+                      <span class="text-green-600 text-sm">
+                        <Icon glyph="arrow-up" />
+                      </span>
+                    )}
+                    {win === "a" && (
+                      <span class="text-red-600 text-sm">
+                        <Icon glyph="arrow-down" />
+                      </span>
+                    )}
+                    <span class="font-mono text-sm text-primary">
+                      {metric.bVal}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div class="bg-background-200 border border-gray-300 rounded-xl p-5 mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <div class="font-mono text-xs text-gray-600 uppercase tracking-widest">
+                AI analysis
+              </div>
+              <div id="ai-loading" class="flex items-center gap-2">
+                <div style="width:6px;height:6px;border-radius:50%;background:var(--ds-purple-500);animation:pulse 1.5s infinite" />
+                <span class="font-mono text-xs text-gray-500">
+                  Generating...
+                </span>
+              </div>
+            </div>
+            <p
+              id="ai-comparison"
+              class="text-sm text-gray-700 leading-relaxed"
+              style="display:none"
+            />
+          </div>
+
+          <div class="bg-background-200 border border-gray-300 rounded-xl p-5">
+            <div class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4">
+              Size comparison
+            </div>
+            <div
+              id="size-compare-bar"
+              class="flex items-end justify-center gap-8 py-4"
+            />
+          </div>
+        </div>
+      )
+    }
+
+    {
+      !a && !b && (
+        <div class="bg-background-200 border border-gray-300 rounded-xl p-6">
+          <div class="font-mono text-xs text-gray-600 uppercase tracking-widest mb-4">
+            Search planets to compare
+          </div>
+          <div class="flex gap-3 mb-4">
+            <input
+              id="search-a"
+              type="text"
+              placeholder="First planet..."
+              class="flex-1 bg-background-100 border border-gray-300 rounded-lg px-3 py-2 text-sm text-primary placeholder:text-gray-500 focus:outline-none focus:border-gray-600"
+            />
+            <input
+              id="search-b"
+              type="text"
+              placeholder="Second planet..."
+              class="flex-1 bg-background-100 border border-gray-300 rounded-lg px-3 py-2 text-sm text-primary placeholder:text-gray-500 focus:outline-none focus:border-gray-600"
+            />
+            <button
+              id="compare-go"
+              class="bg-primary text-background-100 text-sm px-5 py-2 rounded-lg hover:bg-gray-900 transition-colors"
+            >
+              Compare
+            </button>
+          </div>
+        </div>
+      )
+    }
+  </section>
+</Layout>
+
+<script
+  is:inline
+  define:vars={{
+    planetA: a
+      ? {
+          id: a.id,
+          name: a.name,
+          type: a.planet_type,
+          radius: a.radius_earth,
+          mass: a.mass_earth,
+          temp: a.eq_temperature,
+        }
+      : null,
+    planetB: b
+      ? {
+          id: b.id,
+          name: b.name,
+          type: b.planet_type,
+          radius: b.radius_earth,
+          mass: b.mass_earth,
+          temp: b.eq_temperature,
+        }
+      : null,
+  }}
+>
+  const PLANET_COLORS = {
+    rocky: ["#8a7040", "#6a5030"],
+    "super-earth": ["#3a9e75", "#1a7e55"],
+    "sub-neptune": ["#4a8ed4", "#2a6eb4"],
+    "neptune-like": ["#3a7ed4", "#1a5eb4"],
+    "ocean-world": ["#3a7ed4", "#1a5eb4"],
+    "hot-jupiter": ["#E87C1E", "#c85c0e"],
+    "gas-giant": ["#8a5bc4", "#6a3ba4"],
+    unknown: ["#505050", "#303030"],
+  };
+
+  document.querySelectorAll(".compare-canvas").forEach((canvas, i) => {
+    const planet = i === 0 ? planetA : planetB;
+    if (planet) {
+      const planetContext = canvas.getContext("2d");
+      const [color1, color2] =
+        PLANET_COLORS[planet.type] ?? PLANET_COLORS["unknown"];
+      const size = 100,
+        centerX = size / 2,
+        centerY = size / 2;
+      const radius = Math.min(Math.max(planet.radius * 22, 12), size * 0.44);
+      const gradient = planetContext.createRadialGradient(
+        centerX - radius * 0.3,
+        centerY - radius * 0.3,
+        radius * 0.1,
+        centerX,
+        centerY,
+        radius,
+      );
+      gradient.addColorStop(0, color1);
+      gradient.addColorStop(1, color2);
+      planetContext.beginPath();
+      planetContext.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      planetContext.fillStyle = gradient;
+      planetContext.fill();
+      planetContext.beginPath();
+      planetContext.arc(
+        centerX - radius * 0.25,
+        centerY - radius * 0.25,
+        radius * 0.35,
+        0,
+        Math.PI * 2,
+      );
+      planetContext.fillStyle = "rgba(255,255,255,0.08)";
+      planetContext.fill();
+    }
+  });
+
+  if (planetA && planetB) {
+    const container = document.getElementById("size-compare-bar");
+    if (container) {
+      const bodies = [
+        {
+          name: planetA.name.split(" ")[0],
+          r: planetA.radius ?? 1,
+          color: PLANET_COLORS[planetA.type] ?? "#888",
+        },
+        {
+          name: planetB.name.split(" ")[0],
+          r: planetB.radius ?? 1,
+          color: PLANET_COLORS[planetB.type] ?? "#888",
+        },
+        { name: "Earth", r: 1, color: "#378ADD" },
+        { name: "Jupiter", r: 11.2, color: "#E87C1E" },
+      ].sort((x, y) => x.r - y.r);
+
+      const maxR = Math.max(...bodies.map((b) => b.r));
+      const scale = 60 / maxR;
+
+      bodies.forEach((b) => {
+        const px = Math.max(b.r * scale, 4);
+        const div = document.createElement("div");
+        div.style.cssText =
+          "display:flex;flex-direction:column;align-items:center;gap:8px";
+        div.innerHTML = `
+        <div style="width:${px * 2}px;height:${px * 2}px;border-radius:50%;background:${b.color};opacity:.85;flex-shrink:0"></div>
+        <div style="font-size:10px;color:var(--ds-gray-600);font-family:var(--font-geist-mono);text-align:center;max-width:80px;word-break:break-word">${b.name}</div>
+        <div style="font-size:10px;color:var(--ds-gray-500);font-family:var(--font-geist-mono)">${b.r.toFixed(2)} R⊕</div>
+      `;
+        container.appendChild(div);
+      });
+    }
+
+    async function loadComparison() {
+      try {
+        const response = await fetch("/api/ai/compare", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            planetIdA: planetA.id,
+            planetIdB: planetB.id,
+          }),
+        });
+        const json = await response.json();
+        if (json.comparison) {
+          document.getElementById("ai-loading").style.display = "none";
+          const el = document.getElementById("ai-comparison");
+          el.style.display = "block";
+          el.textContent = json.comparison;
+        }
+      } catch {
+        document.getElementById("ai-loading").style.display = "none";
+      }
+    }
+    loadComparison();
+  }
+
+  const goBtn = document.getElementById("compare-go");
+  if (goBtn) {
+    goBtn.addEventListener("click", () => {
+      const a = document
+        .getElementById("search-a")
+        .value.trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+      const b = document
+        .getElementById("search-b")
+        .value.trim()
+        .toLowerCase()
+        .replace(/\s+/g, "-");
+      if (a && b) window.location.href = `/compare?a=${a}&b=${b}`;
+    });
+  }
+</script>
