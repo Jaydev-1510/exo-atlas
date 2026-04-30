@@ -24,7 +24,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "and": "^0.0.3",
-    "astro": "^6.1.10",
+    "astro": "^6.2.0",
     "prettier": "^3.8.3",
     "prettier-plugin-astro": "^0.14.1",
     "react": "^19.2.5",
@@ -35,6 +35,6 @@
     "typescript": "^6.0.3"
   },
   "devDependencies": {
-    "supabase": "^2.95.6"
+    "supabase": "^2.96.0"
   }
 }
