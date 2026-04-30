@@ -113,17 +113,7 @@ const { data: similarPlanets } = await supabase.rpc("get_similar_planets", {
           id="compare-btn"
           class="flex items-center gap-2 text-xs border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:border-gray-500 transition-colors"
         >
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-          >
-            <path d="M1 6h10M7 2l4 4-4 4M5 2L1 6l4 4"></path>
-          </svg>
+          <Icon  glyph="function-square" />
           Compare
         </button>
 
